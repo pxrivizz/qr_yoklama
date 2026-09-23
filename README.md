@@ -25,7 +25,6 @@ QR kod, okul ağı ve konum doğrulaması kullanan web tabanlı yoklama sistemi.
 - Rol bazlı `/panel` yönlendirmesi ve mobil öncelikli öğrenci paneli
 - Animasyonlu, klavye erişilebilir yeni ders ve silme onay pencereleri
 - Ders bazlı oturum matrisi, katılım oranı ve zorunlu öğrenci devamsızlık eşiği içeren yoklama raporu
-- Yerel geliştirmede e-posta/şifre ve Google seçenekli giriş; derse eşleşmiş öğretmen/öğrenci demo hesapları
 
 ## Yerel kurulum
 
@@ -58,7 +57,6 @@ QR kod, okul ağı ve konum doğrulaması kullanan web tabanlı yoklama sistemi.
 
 ```powershell
 npm run test
-npm run test:integration
 npm run typecheck
 npm run lint
 npm run build

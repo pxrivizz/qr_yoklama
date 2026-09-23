@@ -1,0 +1,603 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Material Symbols Outlined";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("https://fonts.gstatic.com/s/materialsymbolsoutlined/v364/kJF1BvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oDMzByHX9rA6RzaxHMPdY43zj-jCxv3fzvRNU22ZXGJpEpjC_1v-p_4MrImHCIJIZrDCvHOem.ttf") format("truetype");
+}
+
+@layer components {
+  .material-symbols-outlined {
+    font-family: "Material Symbols Outlined";
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "liga";
+    font-variation-settings:
+      "FILL" 0,
+      "wght" 400,
+      "GRAD" 0,
+      "opsz" 24;
+  }
+
+  .material-symbols-outlined.filled {
+    font-variation-settings:
+      "FILL" 1,
+      "wght" 400,
+      "GRAD" 0,
+      "opsz" 24;
+  }
+}
+
+
+@theme inline {
+
+  --color-on-tertiary: #ffffff;
+  --color-on-error: #ffffff;
+  --color-tertiary-container: #2a3a4f;
+  --color-background: #f7f9fb;
+  --color-primary: #022448;
+  --color-surface-bright: #f7f9fb;
+  --color-on-error-container: #93000a;
+  --color-secondary-fixed: #6ffbbe;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #1e3a5f;
+  --color-surface-tint: #455f87;
+  --color-on-tertiary-container: #94a4bd;
+  --color-on-secondary-fixed-variant: #005236;
+  --color-on-tertiary-fixed-variant: #38485d;
+  --color-on-secondary-fixed: #002113;
+  --color-secondary-fixed-dim: #4edea3;
+  --color-tertiary-fixed-dim: #b7c8e1;
+  --color-secondary-container: #6cf8bb;
+  --color-error: #ba1a1a;
+  --color-surface-container-high: #e6e8ea;
+  --color-on-secondary-container: #00714d;
+  --color-surface-variant: #e0e3e5;
+  --color-primary-fixed: #d5e3ff;
+  --color-secondary: #006c49;
+  --color-on-primary-container: #8aa4cf;
+  --color-surface: #f7f9fb;
+  --color-on-surface-variant: #43474e;
+  --color-inverse-on-surface: #eff1f3;
+  --color-surface-container-low: #f2f4f6;
+  --color-on-surface: #191c1e;
+  --color-surface-container-highest: #e0e3e5;
+  --color-surface-container: #eceef0;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-tertiary-fixed: #0b1c30;
+  --color-inverse-primary: #adc8f5;
+  --color-primary-fixed-dim: #adc8f5;
+  --color-outline: #74777f;
+  --color-on-primary-fixed-variant: #2d486d;
+  --color-tertiary-fixed: #d3e4fe;
+  --color-on-background: #191c1e;
+  --color-inverse-surface: #2d3133;
+  --color-tertiary: #142538;
+  --color-outline-variant: #c4c6cf;
+  --color-surface-dim: #d8dadc;
+  --color-on-primary-fixed: #001c3b;
+  --color-error-container: #ffdad6;
+  --color-on-secondary: #ffffff;
+
+  /* ── Spacing ── */
+  --spacing-stack-sm: 8px;
+  --spacing-stack-md: 16px;
+  --spacing-stack-lg: 24px;
+  --spacing-gutter: 24px;
+  --spacing-margin-page: 32px;
+  --spacing-sidebar-width: 260px;
+  --spacing-container-max-width: 1440px;
+
+  /* ── Border Radius ── */
+  --radius-DEFAULT: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-full: 9999px;
+
+  /* ── Font Family ── */
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: var(--font-sans);
+  --font-body-md: var(--font-sans);
+  --font-h1: var(--font-sans);
+  --font-h2: var(--font-sans);
+  --font-h3: var(--font-sans);
+  --font-label-sm: var(--font-sans);
+  --font-body-lg: var(--font-sans);
+
+  /* ── Font Size ── */
+  --text-body-md: 14px;
+  --text-body-md--line-height: 20px;
+  --text-body-md--font-weight: 400;
+
+  --text-h2: 24px;
+  --text-h2--line-height: 32px;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h2--font-weight: 600;
+
+  --text-h1: 30px;
+  --text-h1--line-height: 38px;
+  --text-h1--letter-spacing: -0.02em;
+  --text-h1--font-weight: 700;
+
+  --text-h3: 20px;
+  --text-h3--line-height: 28px;
+  --text-h3--font-weight: 600;
+
+  --text-label-sm: 12px;
+  --text-label-sm--line-height: 16px;
+  --text-label-sm--font-weight: 500;
+
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 24px;
+  --text-body-lg--font-weight: 400;
+}
+
+/* ─── Base Styles ─── */
+
+body {
+  background: var(--color-background);
+  color: var(--color-on-surface);
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-sans);
+}
+
+button,
+summary,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--color-secondary-container);
+  color: var(--color-on-surface);
+}
+
+/* ─── Corporate Motion System ─── */
+/* Duration palette: quick=150ms, standard=280ms, slow=450ms */
+/* Signature easing: cubic-bezier(0.2, 0, 0, 1) — MD3 Standard */
+
+/* ── Entrance: Fade In Up ── */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 400ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* ── Staggered children entrance ── */
+.stagger-children>* {
+  animation: fade-in-up 400ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.stagger-children>*:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.stagger-children>*:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.stagger-children>*:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.stagger-children>*:nth-child(4) {
+  animation-delay: 180ms;
+}
+
+.stagger-children>*:nth-child(5) {
+  animation-delay: 240ms;
+}
+
+.stagger-children>*:nth-child(6) {
+  animation-delay: 300ms;
+}
+
+.stagger-children>*:nth-child(7) {
+  animation-delay: 360ms;
+}
+
+.stagger-children>*:nth-child(8) {
+  animation-delay: 420ms;
+}
+
+/* ── Live pulse ── */
+@keyframes pulse-live {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.animate-pulse-live {
+  animation: pulse-live 2s ease-in-out infinite;
+}
+
+
+/* ── Shimmer for CTAs ── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.animate-shimmer {
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+}
+
+/* ── Gradient shift (hero backgrounds) ── */
+@keyframes gradient-shift {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease-in-out infinite;
+}
+
+/* ── Float (icons, decorative) ── */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* ── Viewfinder pulse (QR scanner) ── */
+@keyframes viewfinder-pulse {
+
+  0%,
+  100% {
+    opacity: 0.8;
+    border-color: rgba(255, 255, 255, 0.8);
+  }
+
+  50% {
+    opacity: 1;
+    border-color: rgba(255, 255, 255, 1);
+  }
+}
+
+.animate-viewfinder-pulse {
+  animation: viewfinder-pulse 2s ease-in-out infinite;
+}
+
+/* ── Slide in from left (mobile nav) ── */
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out-left {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* ── Spin slow (decorative) ── */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+/* ── Scale pop (success state) ── */
+@keyframes scale-pop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-scale-pop {
+  animation: scale-pop 350ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* ── Marching ants for empty states ── */
+@keyframes marching-ants {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+/* ─── Utility Classes ─── */
+
+/* Glassmorphism */
+.glass {
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-dark {
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  background: rgba(2, 36, 72, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Card hover lift */
+.card-hover {
+  transition: transform 280ms cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 280ms cubic-bezier(0.2, 0, 0, 1),
+    border-color 280ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-color: var(--color-primary-fixed-dim);
+}
+
+/* Interactive press feedback */
+.press-scale {
+  transition: transform 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.press-scale:active {
+  transform: scale(0.97);
+}
+
+/* Button hover lift */
+.btn-lift {
+  transition: transform 200ms cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 200ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.btn-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.btn-lift:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: none;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-surface-tint));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gradient progress bar */
+.progress-gradient {
+  background: linear-gradient(90deg, var(--color-secondary), var(--color-secondary-fixed-dim));
+}
+
+/* Urgency progress — last 5 seconds */
+.progress-urgent {
+  background: linear-gradient(90deg, #e67e22, var(--color-error));
+}
+
+/* ─── Modal Animations (improved) ─── */
+
+@keyframes modal-backdrop-in {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+}
+
+@keyframes modal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modal-panel-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+dialog.modal-is-opening::backdrop {
+  animation: modal-backdrop-in 220ms ease-out both;
+}
+
+dialog.modal-is-opening>div {
+  animation: modal-panel-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+dialog.modal-is-closing>div {
+  animation: modal-panel-out 180ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+/* ─── Scroll Progress Indicator ─── */
+@supports (animation-timeline: scroll()) {
+  .scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-secondary), var(--color-primary));
+    transform-origin: left;
+    animation: grow-x linear both;
+    animation-timeline: scroll(root block);
+    z-index: 50;
+  }
+
+  @keyframes grow-x {
+    from {
+      transform: scaleX(0);
+    }
+
+    to {
+      transform: scaleX(1);
+    }
+  }
+}
+
+/* ─── Sidebar gradient ─── */
+.sidebar-gradient {
+  background: linear-gradient(180deg, #1e3a5f 0%, #142538 100%);
+}
+
+/* ─── Hero gradient ─── */
+.hero-gradient {
+  background: linear-gradient(135deg, #022448 0%, #1e3a5f 40%, #2a3a4f 70%, #022448 100%);
+  background-size: 200% 200%;
+}
+
+/* ─── Login brand gradient (animated) ─── */
+.login-brand-gradient {
+  background: linear-gradient(135deg,
+      #022448 0%,
+      #1e3a5f 25%,
+      #2a3a4f 50%,
+      #1e3a5f 75%,
+      #022448 100%);
+  background-size: 300% 300%;
+  animation: gradient-shift 12s ease-in-out infinite;
+}
+
+/* ─── Status message accent bar ─── */
+.status-accent-bar {
+  position: relative;
+  padding-left: 1rem;
+}
+
+.status-accent-bar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 3px;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+/* ─── Accessibility ─── */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .card-hover:hover {
+    transform: none;
+  }
+
+  .btn-lift:hover,
+  .btn-lift:active {
+    transform: none;
+  }
+}

@@ -1,0 +1,357 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  TEACHER
+  STUDENT
+}
+
+enum SessionStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum SessionCreationSource {
+  SYSTEM_QR
+  TEACHER_MANUAL
+}
+
+enum AttendanceSource {
+  QR_SCAN
+  TEACHER_MANUAL
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+  FLAGGED
+}
+
+enum AttemptStatus {
+  ACCEPTED
+  REJECTED
+  FLAGGED
+}
+
+enum QrScanActionType {
+  YOKLAMA
+  GIRIS
+  CIKIS
+}
+
+enum QrScanResult {
+  SUCCESS
+  INVALID_QR
+  EXPIRED_QR
+  DUPLICATE_SCAN
+  OUT_OF_RADIUS
+  OUT_OF_NETWORK
+  NOT_ENROLLED
+  PHOTO_REQUIRED
+  ERROR
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  role               UserRole            @default(STUDENT)
+  name               String?
+  normalizedName     String?
+  email              String              @unique
+  emailVerified      DateTime?
+  image              String?
+  googleId           String?             @unique
+  schoolNumber       String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  accounts           Account[]
+  sessions           Session[]
+  authenticators     Authenticator[]
+  taughtCourses      Course[]            @relation("CourseTeacher")
+  matchedEnrollments Enrollment[]        @relation("MatchedStudent")
+  createdSessions    AttendanceSession[] @relation("SessionCreator")
+  attendanceRecords  AttendanceRecord[]  @relation("RecordStudent")
+  manuallyEntered    AttendanceRecord[]  @relation("RecordEnteredBy")
+  attendanceAttempts AttendanceAttempt[]
+  auditLogs          AuditLog[]          @relation("AuditActor")
+  qrScanLogs         QrScanLog[]         @relation("UserScanLogs")
+  notifications      Notification[]
+
+  @@index([role])
+  @@index([normalizedName])
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @map("refreshToken") @db.Text
+  access_token      String? @map("accessToken") @db.Text
+  expires_at        Int?    @map("expiresAt")
+  token_type        String? @map("tokenType")
+  scope             String?
+  id_token          String? @map("idToken") @db.Text
+  session_state     String? @map("sessionState")
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("AuthSession")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Authenticator {
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+}
+
+model Course {
+  id                  String              @id @default(cuid())
+  teacherId           String
+  name                String
+  code                String
+  schoolLat           Float
+  schoolLng           Float
+  allowedRadiusMeters Int                 @default(100)
+  allowedIpRanges     String[]
+  weeklySessionCount  Int
+  totalWeeks          Int
+  mandatoryAlertLimit Int?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  teacher             User                @relation("CourseTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
+  enrollments         Enrollment[]
+  attendanceSessions  AttendanceSession[]
+  qrScanLogs          QrScanLog[]
+  notifications       Notification[]
+
+  @@unique([teacherId, code])
+  @@index([teacherId])
+}
+
+model Enrollment {
+  id                   String              @id @default(cuid())
+  courseId             String
+  fullNameOnList       String
+  normalizedNameOnList String
+  schoolNumberOnList   String
+  isMandatory          Boolean             @default(false)
+  matchedUserId        String?
+  matchedAt            DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  course               Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  matchedUser          User?               @relation("MatchedStudent", fields: [matchedUserId], references: [id], onDelete: SetNull)
+  attendanceRecords    AttendanceRecord[]
+  attendanceAttempts   AttendanceAttempt[]
+  qrScanLogs           QrScanLog[]
+
+  @@unique([courseId, schoolNumberOnList])
+  @@index([courseId, normalizedNameOnList])
+  @@index([matchedUserId])
+}
+
+model AttendanceSession {
+  id                  String                @id @default(cuid())
+  courseId            String
+  weekNumber          Int
+  sessionIndexInWeek  Int
+  startedAt           DateTime              @default(now())
+  endedAt             DateTime?
+  status              SessionStatus         @default(ACTIVE)
+  createdBy           SessionCreationSource
+  createdByUserId     String
+  schoolLat           Float
+  schoolLng           Float
+  allowedRadiusMeters Int
+  allowedIpRanges     String[]
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  course              Course                @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdByUser       User                  @relation("SessionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  qrTokens            QrToken[]
+  attendanceRecords   AttendanceRecord[]
+  attendanceAttempts  AttendanceAttempt[]
+  qrScanLogs          QrScanLog[]
+  notifications       Notification[]
+
+  @@index([courseId, status])
+  @@unique([courseId, weekNumber, sessionIndexInWeek])
+}
+
+model QrToken {
+  id        String            @id @default(cuid())
+  sessionId String
+  issuedAt  DateTime
+  expiresAt DateTime
+  nonceHash String            @unique
+  signature String            @unique
+  createdAt DateTime          @default(now())
+  session   AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, expiresAt])
+}
+
+model AttendanceRecord {
+  id                    String            @id @default(cuid())
+  sessionId             String
+  enrollmentId          String
+  studentId             String?
+  source                AttendanceSource
+  recordedAt            DateTime          @default(now())
+  ipAddress             String?
+  latitude              Float?
+  longitude             Float?
+  accuracyMeters        Float?
+  distanceMeters        Float?
+  deviceFingerprintHash String?
+  status                AttendanceStatus
+  isExcused             Boolean           @default(false)
+  excuseReason          String?
+  note                  String?
+  enteredByTeacherId    String?
+  editedAt              DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  session               AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  enrollment            Enrollment        @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  student               User?             @relation("RecordStudent", fields: [studentId], references: [id], onDelete: SetNull)
+  enteredByTeacher      User?             @relation("RecordEnteredBy", fields: [enteredByTeacherId], references: [id], onDelete: SetNull)
+
+  @@unique([sessionId, enrollmentId])
+  @@index([studentId, recordedAt])
+  @@index([sessionId, status])
+}
+
+model AttendanceAttempt {
+  id                    String             @id @default(cuid())
+  sessionId             String?
+  enrollmentId          String?
+  studentId             String?
+  tokenNonceHash        String?
+  ipAddress             String?
+  latitude              Float?
+  longitude             Float?
+  accuracyMeters        Float?
+  distanceMeters        Float?
+  deviceFingerprintHash String?
+  status                AttemptStatus
+  reasonCode            String?
+  createdAt             DateTime           @default(now())
+  session               AttendanceSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  enrollment            Enrollment?        @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  student               User?              @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  @@index([studentId, createdAt])
+  @@index([ipAddress, createdAt])
+  @@index([deviceFingerprintHash, createdAt])
+  @@index([sessionId, status])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model QrScanLog {
+  id             String           @id @default(cuid())
+  courseId       String?
+  sessionId      String?
+  enrollmentId   String?
+  userId         String?
+  studentName    String?
+  studentNumber  String?
+  className      String?
+  actionType     QrScanActionType @default(YOKLAMA)
+  scannedBy      String?
+  scanSource     String?          @default("Kamera")
+  deviceInfo     String?
+  ipAddress      String?
+  location       String?
+  latitude       Float?
+  longitude      Float?
+  accuracyMeters Float?
+  distanceMeters Float?
+  result         QrScanResult     @default(SUCCESS)
+  resultMessage  String?
+  userAgent      String?          @db.Text
+  metadata       Json?
+  scannedAt      DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+
+  course     Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  session    AttendanceSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  enrollment Enrollment?        @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  user       User?              @relation("UserScanLogs", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([scannedAt])
+  @@index([courseId, scannedAt])
+  @@index([userId, scannedAt])
+  @@index([studentNumber])
+  @@index([result])
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String
+  courseId  String?
+  sessionId String?
+  title     String
+  message   String
+  type      String             @default("ATTENDANCE_STARTED")
+  isRead    Boolean            @default(false)
+  readAt    DateTime?
+  createdAt DateTime           @default(now())
+
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course  Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  session AttendanceSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}

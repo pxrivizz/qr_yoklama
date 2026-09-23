@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: okul_yoklama
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d okul_yoklama"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - okul_yoklama_postgres:/var/lib/postgresql/data
+
+volumes:
+  okul_yoklama_postgres:
