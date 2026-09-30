@@ -30,8 +30,11 @@ export async function getCourseAttendanceReport(teacherId: string, courseId: str
         orderBy: [{ startedAt: "asc" }],
         select: {
           id: true,
+          slotType: true,
           weekNumber: true,
           sessionIndexInWeek: true,
+          sessionDate: true,
+          lessonPeriod: true,
           startedAt: true,
           createdBy: true,
           attendanceRecords: {

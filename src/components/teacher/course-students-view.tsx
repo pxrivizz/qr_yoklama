@@ -589,7 +589,7 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
             </div>
             {course.mandatoryAlertLimit !== null && (
               <Badge variant="warning">
-                Devamsızlık Eşiği: {course.mandatoryAlertLimit} Oturum
+                Devamsızlık Hakkı: {course.mandatoryAlertLimit} Oturum
               </Badge>
             )}
           </div>
@@ -729,7 +729,7 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
                               <MaterialIcon name="warning" className="text-xs" /> Sınıra Yakın
                             </Badge>
                           )}
-                          {student.stats.isAtLimit && (
+                          {student.stats.isAtLimit && !student.stats.isFailed && (
                             <Badge variant="warning" className="gap-1">
                               <MaterialIcon name="warning" className="text-xs" /> Sınırda
                             </Badge>

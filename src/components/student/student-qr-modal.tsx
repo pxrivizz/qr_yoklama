@@ -1,11 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import jsQR from "jsqr";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/ui/icons";
+import { cn } from "@/lib/cn";
 import { geolocationErrorMessage } from "@/lib/browser/geolocation-error";
+import {
+  decodeQrFromVideo,
+  getCameraTorchCapability,
+  getCameraZoomCapability,
+  OPTIMAL_CAMERA_CONSTRAINTS,
+  setCameraTorch,
+  setCameraZoom,
+  type ZoomCapability,
+} from "@/lib/browser/qr-scanner-engine";
 
 type StudentQrModalProps = {
   open: boolean;
@@ -16,16 +25,6 @@ type StudentQrModalProps = {
 };
 
 type ScanState = "ready" | "scanning" | "checking" | "success" | "error";
-
-function tokenFromQrValue(rawValue: string) {
-  const value = rawValue.trim();
-  try {
-    const url = new URL(value, typeof window !== "undefined" ? window.location.origin : "http://localhost");
-    return url.searchParams.get("token") ?? (value.split(".").length === 3 ? value : "");
-  } catch {
-    return value.split(".").length === 3 ? value : "";
-  }
-}
 
 function getSinglePosition(options: PositionOptions) {
   return new Promise<GeolocationPosition>((resolve, reject) => {
@@ -69,6 +68,7 @@ export function StudentQrModal({
   const scanTimerRef = useRef<number | undefined>(undefined);
   const handledTokenRef = useRef<string | null>(null);
   const isCancelledRef = useRef(false);
+  const onSuccessRef = useRef(onSuccess);
 
   const [state, setState] = useState<ScanState>("ready");
   const [statusTitle, setStatusTitle] = useState("Kamera Başlatılıyor");
@@ -78,12 +78,35 @@ export function StudentQrModal({
       : "Öğretmen ekranındaki QR kodunu kameraya gösterin.",
   );
 
+  const [zoomCap, setZoomCap] = useState<ZoomCapability>({ supported: false, min: 1, max: 1, step: 0.1, current: 1 });
+  const [currentZoom, setCurrentZoom] = useState(1);
+  const [hasTorch, setHasTorch] = useState(false);
+  const [torchActive, setTorchActive] = useState(false);
+
+  const handleZoomChange = useCallback(async (level: number) => {
+    if (!streamRef.current) return;
+    const ok = await setCameraZoom(streamRef.current, level);
+    if (ok) setCurrentZoom(level);
+  }, []);
+
+  const handleTorchToggle = useCallback(async () => {
+    if (!streamRef.current) return;
+    const next = !torchActive;
+    const ok = await setCameraTorch(streamRef.current, next);
+    if (ok) setTorchActive(next);
+  }, [torchActive]);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
+
   const stopCamera = useCallback(() => {
     isCancelledRef.current = true;
     if (scanTimerRef.current) window.clearTimeout(scanTimerRef.current);
     scanTimerRef.current = undefined;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    setTorchActive(false);
     if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
 
@@ -137,19 +160,17 @@ export function StudentQrModal({
 
         const courseLabel = json.data?.courseName ?? targetCourseName ?? "Ders";
         setState("success");
-        setStatusTitle("Yoklamanız başarıyla alındı");
-        setStatusMessage(`${courseLabel} için katılımınız sisteme mühürlendi.`);
+        setStatusTitle(`${courseLabel} yoklamasına katılımınız başarıyla kaydedildi`);
+        setStatusMessage("");
 
-        if (onSuccess) {
-          onSuccess(courseLabel);
-        }
+        onSuccessRef.current?.(courseLabel);
       } catch (err) {
         setState("error");
         setStatusTitle("Yoklama Alınamadı");
         setStatusMessage(err instanceof Error ? err.message : "QR kodu okunamadı.");
       }
     },
-    [onSuccess, stopCamera, targetCourseId, targetCourseName],
+    [stopCamera, targetCourseId, targetCourseName],
   );
 
   const startCamera = useCallback(async () => {
@@ -171,10 +192,7 @@ export function StudentQrModal({
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-        audio: false,
-      });
+      const stream = await navigator.mediaDevices.getUserMedia(OPTIMAL_CAMERA_CONSTRAINTS);
 
       if (isCancelledRef.current) {
         stream.getTracks().forEach((track) => track.stop());
@@ -182,46 +200,40 @@ export function StudentQrModal({
       }
 
       streamRef.current = stream;
+
+      const zCap = getCameraZoomCapability(stream);
+      setZoomCap(zCap);
+      setCurrentZoom(zCap.current);
+
+      const tCap = getCameraTorchCapability(stream);
+      setHasTorch(tCap.supported);
+      setTorchActive(tCap.active);
+
       const video = videoRef.current;
       if (!video) return;
 
       video.srcObject = stream;
-      await video.play().catch(() => {});
+      await video.play().catch(() => { });
 
-      const scanFrame = () => {
+      const scanFrame = async () => {
+        if (isCancelledRef.current || handledTokenRef.current) return;
         const v = videoRef.current;
         const c = canvasRef.current;
-        if (!v || !c || v.readyState !== v.HAVE_ENOUGH_DATA) {
-          scanTimerRef.current = window.setTimeout(scanFrame, 250);
+        if (!v || !c || v.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+          scanTimerRef.current = window.setTimeout(() => void scanFrame(), 100);
           return;
         }
 
-        c.width = v.videoWidth;
-        c.height = v.videoHeight;
-        const ctx = c.getContext("2d");
-        if (!ctx) {
-          scanTimerRef.current = window.setTimeout(scanFrame, 250);
+        const token = await decodeQrFromVideo(v, c);
+        if (token) {
+          void submitToken(token);
           return;
         }
 
-        ctx.drawImage(v, 0, 0, c.width, c.height);
-        const imageData = ctx.getImageData(0, 0, c.width, c.height);
-        const qr = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: "dontInvert",
-        });
-
-        if (qr?.data) {
-          const token = tokenFromQrValue(qr.data);
-          if (token) {
-            void submitToken(token);
-            return;
-          }
-        }
-
-        scanTimerRef.current = window.setTimeout(scanFrame, 200);
+        scanTimerRef.current = window.setTimeout(() => void scanFrame(), 75);
       };
 
-      scanFrame();
+      void scanFrame();
     } catch {
       setState("error");
       setStatusTitle("Kamera Açılamadı");
@@ -260,17 +272,17 @@ export function StudentQrModal({
       onClose={handleClose}
       title={
         state === "success"
-          ? "Yoklama Alındı"
+          ? statusTitle
           : state === "error"
             ? "Yoklama Hatası"
             : targetCourseName
               ? `QR Yoklama · ${targetCourseName}`
               : "Ders QR Kodu Oku"
       }
-      description={statusMessage}
+      description={state === "success" ? undefined : statusMessage}
     >
       <div className="space-y-4">
-        {/* Scanning Camera View */}
+
         {state === "scanning" && (
           <div className="relative aspect-square w-full max-w-sm mx-auto overflow-hidden rounded-2xl border-2 border-neutral-800 bg-black shadow-inner">
             <video
@@ -281,9 +293,25 @@ export function StudentQrModal({
             />
             <canvas ref={canvasRef} className="hidden" />
 
+            {hasTorch && (
+              <div className="absolute top-3 right-3 z-10">
+                <button
+                  type="button"
+                  onClick={() => void handleTorchToggle()}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur shadow transition",
+                    torchActive ? "bg-amber-400 text-neutral-900" : "bg-black/60 text-white/90 hover:bg-black/80"
+                  )}
+                >
+                  <MaterialIcon name={torchActive ? "flashlight_on" : "flashlight_off"} className="text-sm" />
+                  <span>{torchActive ? "Flaş Açık" : "Flaş"}</span>
+                </button>
+              </div>
+            )}
+
             {/* Viewfinder Target Frame */}
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="relative size-56 sm:size-64 rounded-2xl border-2 border-emerald-400 bg-emerald-400/5 shadow-2xl">
+              <div className="relative size-52 sm:size-60 rounded-2xl border-2 border-emerald-400 bg-emerald-400/5 shadow-2xl">
                 <span className="absolute -top-1 -left-1 size-5 border-t-4 border-l-4 border-emerald-400 rounded-tl" />
                 <span className="absolute -top-1 -right-1 size-5 border-t-4 border-r-4 border-emerald-400 rounded-tr" />
                 <span className="absolute -bottom-1 -left-1 size-5 border-b-4 border-l-4 border-emerald-400 rounded-bl" />
@@ -292,16 +320,35 @@ export function StudentQrModal({
               </div>
             </div>
 
-            <div className="absolute bottom-3 inset-x-3 text-center">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1 text-xs font-medium text-white backdrop-blur">
+            {/* Zoom Controls for distance scanning */}
+            <div className="absolute bottom-3 inset-x-3 flex flex-col items-center gap-1.5 z-10">
+              {zoomCap.supported && (
+                <div className="flex items-center gap-1.5 rounded-full bg-black/60 p-1 backdrop-blur border border-white/10">
+                  {[1, 2, 3].filter((lvl) => lvl <= zoomCap.max).map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => void handleZoomChange(lvl)}
+                      className={cn(
+                        "size-8 rounded-full font-bold text-xs transition active:scale-95 flex items-center justify-center",
+                        Math.abs(currentZoom - lvl) < 0.2
+                          ? "bg-white text-neutral-900 shadow-sm ring-2 ring-emerald-400"
+                          : "text-white/80 hover:text-white hover:bg-white/10"
+                      )}
+                    >
+                      {lvl}x
+                    </button>
+                  ))}
+                </div>
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-0.5 text-[11px] font-medium text-white backdrop-blur">
                 <MaterialIcon name="center_focus_strong" className="text-sm text-emerald-400" />
-                Kodu karenin içine getirin
+                {zoomCap.supported ? "En arka için 2x/3x yakınlaştırın" : "Kodu karenin içine getirin"}
               </span>
             </div>
           </div>
         )}
 
-        {/* Checking / Processing View */}
         {state === "checking" && (
           <div className="py-12 text-center space-y-3">
             <div className="grid size-16 place-items-center rounded-2xl bg-blue-50 text-blue-600 mx-auto animate-pulse">
@@ -312,17 +359,10 @@ export function StudentQrModal({
           </div>
         )}
 
-        {/* Success View */}
         {state === "success" && (
           <div className="py-8 text-center space-y-4">
             <div className="grid size-16 place-items-center rounded-2xl bg-emerald-100 text-emerald-600 mx-auto shadow-md ring-8 ring-emerald-50">
               <MaterialIcon name="check_circle" className="text-4xl" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-emerald-900">{statusTitle}</h3>
-              <p className="mt-1 text-sm text-emerald-700 font-medium max-w-sm mx-auto">
-                {statusMessage}
-              </p>
             </div>
             <div className="pt-2">
               <Button
@@ -337,7 +377,6 @@ export function StudentQrModal({
           </div>
         )}
 
-        {/* Error View */}
         {state === "error" && (
           <div className="py-8 text-center space-y-4">
             <div className="grid size-16 place-items-center rounded-2xl bg-red-100 text-red-600 mx-auto shadow-md ring-8 ring-red-50">
@@ -347,6 +386,14 @@ export function StudentQrModal({
               <h3 className="text-base font-bold text-red-900">{statusTitle}</h3>
               <p className="mt-1 text-xs text-red-700 font-medium max-w-sm mx-auto">
                 {statusMessage}
+              </p>
+            </div>
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-outline-variant bg-surface-container px-3 py-2">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold italic text-on-primary">
+                i
+              </span>
+              <p className="font-body-md text-body-md text-on-surface-variant">
+                <strong>Eğer konum hatası alırsanız (cihaz ile ilgili), tarayıcıyı değiştirin.</strong>
               </p>
             </div>
             <div className="flex items-center gap-3 pt-2">
@@ -370,7 +417,7 @@ export function StudentQrModal({
           </div>
         )}
 
-        {/* Bottom Actions when scanning */}
+
         {state === "scanning" && (
           <div className="flex justify-end pt-2">
             <Button
@@ -385,6 +432,7 @@ export function StudentQrModal({
           </div>
         )}
       </div>
+
     </Modal>
   );
 }

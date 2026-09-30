@@ -2,11 +2,15 @@ import "server-only";
 
 import { prisma } from "@/lib/db";
 import { ApiError } from "@/lib/http/api-error";
+import { calculateAbsenceLimitStatus, type AbsenceLimitLevel } from "@/lib/attendance/absence-limit";
 
 export type StudentAttendanceSessionItem = {
   sessionId: string;
-  weekNumber: number;
-  sessionIndexInWeek: number;
+  slotType: "WEEKLY" | "CALENDAR_PERIOD";
+  weekNumber: number | null;
+  sessionIndexInWeek: number | null;
+  sessionDate: Date | null;
+  lessonPeriod: number | null;
   startedAt: Date;
   endedAt: Date | null;
   sessionStatus: "ACTIVE" | "CLOSED";
@@ -54,11 +58,15 @@ export type StudentCourseAttendanceDetail = {
     isAtLimit: boolean;
     isNearLimit: boolean;
     limitStatusText: string;
+    limitLevel: AbsenceLimitLevel;
   };
   activeSession: {
     sessionId: string;
-    weekNumber: number;
-    sessionIndexInWeek: number;
+    slotType: "WEEKLY" | "CALENDAR_PERIOD";
+    weekNumber: number | null;
+    sessionIndexInWeek: number | null;
+    sessionDate: Date | null;
+    lessonPeriod: number | null;
     startedAt: Date;
     alreadyAttended: boolean;
   } | null;
@@ -130,19 +138,20 @@ export async function getStudentCourseAttendanceDetail(
     totalSessions > 0 ? Math.round((attendedCount / totalSessions) * 100) : 100;
 
   const limit = enrollment.course.mandatoryAlertLimit;
-  const hasLimit = enrollment.isMandatory && limit !== null && limit > 0;
-  const isFailed = hasLimit && totalAbsenceCount > limit;
-  const isAtLimit = hasLimit && totalAbsenceCount === limit;
-  const isNearLimit = hasLimit && totalAbsenceCount === limit - 1;
-  const remainingAllowance = hasLimit ? Math.max(0, limit - totalAbsenceCount) : null;
+  const {
+    hasLimit,
+    isFailed,
+    isAtLimit,
+    isNearLimit,
+    remainingAllowance,
+    limitLevel,
+  } = calculateAbsenceLimitStatus(totalAbsenceCount, limit, enrollment.isMandatory);
 
   let limitStatusText = "Devamsızlık Durumu Güvenli";
   if (!enrollment.isMandatory) {
     limitStatusText = "Devamsızlık Zorunluluğu Yok (Muaf)";
   } else if (isFailed) {
     limitStatusText = `Devamsızlıktan Kaldınız (${totalAbsenceCount}/${limit} devamsızlık)`;
-  } else if (isAtLimit) {
-    limitStatusText = `Devamsızlık Sınırındasınız (${totalAbsenceCount}/${limit} - Son hakkınızı kullandınız!)`;
   } else if (isNearLimit) {
     limitStatusText = `Devamsızlık Sınırına Yaklaştınız (${totalAbsenceCount}/${limit} - Kalan hak: 1)`;
   } else if (hasLimit) {
@@ -201,8 +210,11 @@ export async function getStudentCourseAttendanceDetail(
 
     return {
       sessionId: session.id,
+      slotType: session.slotType,
       weekNumber: session.weekNumber,
       sessionIndexInWeek: session.sessionIndexInWeek,
+      sessionDate: session.sessionDate,
+      lessonPeriod: session.lessonPeriod,
       startedAt: session.startedAt,
       endedAt: session.endedAt,
       sessionStatus: session.status,
@@ -221,8 +233,11 @@ export async function getStudentCourseAttendanceDetail(
   const activeSession = active
     ? {
         sessionId: active.id,
+        slotType: active.slotType,
         weekNumber: active.weekNumber,
         sessionIndexInWeek: active.sessionIndexInWeek,
+        sessionDate: active.sessionDate,
+        lessonPeriod: active.lessonPeriod,
         startedAt: active.startedAt,
         alreadyAttended: Boolean(active.attendanceRecords[0]),
       }
@@ -262,6 +277,7 @@ export async function getStudentCourseAttendanceDetail(
       isAtLimit,
       isNearLimit,
       limitStatusText,
+      limitLevel,
     },
     activeSession,
     history,

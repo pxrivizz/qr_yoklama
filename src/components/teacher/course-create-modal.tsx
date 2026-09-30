@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/ui/icons";
 import { Modal } from "@/components/ui/modal";
+import { importedCourseName } from "@/lib/courses/imported-course-name";
 
 export function CourseCreateModal() {
   const [open, setOpen] = useState(false);
@@ -43,7 +44,10 @@ export function CourseCreateModal() {
           <CourseForm
             key={`${preparedImport?.metadata?.courseCode ?? "manual"}-${preparedImport?.file.name ?? "none"}`}
             initialValues={{
-              name: preparedImport?.metadata?.courseName,
+              name: importedCourseName(
+                preparedImport?.metadata?.courseName,
+                preparedImport?.metadata?.branchCode,
+              ),
               code: preparedImport?.metadata?.courseCode,
             }}
             enrollmentFile={preparedImport?.file}

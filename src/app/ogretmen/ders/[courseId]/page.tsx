@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
-import { auth } from "@/auth";
 import { TeacherLayout } from "@/components/layout/teacher-layout";
 import { Card } from "@/components/ui/card";
 import { EnrollmentImport } from "@/components/teacher/enrollment-import";
@@ -10,24 +9,23 @@ import { CourseForm } from "@/components/teacher/course-form";
 import { ButtonLink } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/ui/icons";
 import { getTeacherCourse } from "@/lib/courses/service";
+import { requireTeacher } from "@/lib/auth/authorization";
 
 type PageProps = {
   params: Promise<{ courseId: string }>;
 };
 
 export default async function CourseSettingsPage({ params }: PageProps) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/giris");
-  if (session.user.role !== "TEACHER") redirect("/ogrenci");
+  const teacher = await requireTeacher();
 
   const { courseId } = await params;
-  const course = await getTeacherCourse(session.user.id, courseId);
+  const course = await getTeacherCourse(teacher.id, courseId);
 
   if (!course) redirect("/ogretmen");
 
   return (
     <TeacherLayout
-      userName={session.user.name ?? session.user.email ?? "Öğretmen"}
+      userName={teacher.name ?? teacher.email}
       pageTitle={course.name}
     >
       <div className="animate-fade-in-up mx-auto max-w-5xl px-6 py-stack-lg sm:px-margin-page">
@@ -55,9 +53,11 @@ export default async function CourseSettingsPage({ params }: PageProps) {
               <AttendanceStartModal
                 courseId={course.id}
                 courseName={course.name}
+                attendanceMode={course.attendanceMode}
+                preparatoryDayPlans={course.preparatoryDayPlans}
                 totalWeeks={course.totalWeeks}
                 weeklySessionCount={course.weeklySessionCount}
-                completedSessionCount={course._count.attendanceSessions}
+                completedSessions={course.completedSessions}
               />
             )}
             <ButtonLink href={`/ogretmen/ders/${course.id}/manuel`} variant="secondary">

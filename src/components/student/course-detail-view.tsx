@@ -9,6 +9,8 @@ import { Table, TableBody, TableHead, TableRow, Th, Td } from "@/components/ui/t
 import { StudentQrModal } from "./student-qr-modal";
 import { cn } from "@/lib/cn";
 import type { StudentCourseAttendanceDetail } from "@/lib/students/attendance-service";
+import { AbsenceLimitMeter } from "./absence-limit-meter";
+import { formatPreparatorySlot } from "@/lib/attendance/slot";
 
 type CourseDetailViewProps = {
   initialData: StudentCourseAttendanceDetail;
@@ -26,11 +28,23 @@ function formatDateTime(dateVal: string | Date) {
   }).format(d);
 }
 
+function attendanceSlotLabel(slot: {
+  slotType: "WEEKLY" | "CALENDAR_PERIOD";
+  weekNumber: number | null;
+  sessionIndexInWeek: number | null;
+  sessionDate: string | Date | null;
+  lessonPeriod: number | null;
+}) {
+  if (slot.slotType === "CALENDAR_PERIOD" && slot.sessionDate && slot.lessonPeriod) {
+    return formatPreparatorySlot(slot.sessionDate, slot.lessonPeriod);
+  }
+  return `Hafta ${slot.weekNumber}, ${slot.sessionIndexInWeek}. oturum`;
+}
+
 export function CourseDetailView({ initialData }: CourseDetailViewProps) {
   const [data, setData] = useState<StudentCourseAttendanceDetail>(initialData);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [isRefreshing, startTransition] = useTransition();
-  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   const course = data.course;
   const summary = data.summary;
@@ -65,51 +79,43 @@ export function CourseDetailView({ initialData }: CourseDetailViewProps) {
     };
   }, [refetchData]);
 
-  function handleQrScanSuccess(scannedCourseName: string) {
-    setSuccessToast(`Yoklamanız başarıyla alındı (${scannedCourseName}).`);
+  function handleQrScanSuccess() {
     void refetchData();
-    setTimeout(() => {
-      setSuccessToast(null);
-    }, 6000);
   }
 
   return (
-    <div className="space-y-8 animate-fade-in-up">
-      <div className="flex flex-col gap-4 border-b border-neutral-200/80 pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <Link
-            href="/ogrenci"
-            className="inline-flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
-          >
-            <MaterialIcon name="arrow_back" className="text-base" /> Öğrenci Paneline Dön
-          </Link>
-          <div className="mt-2 flex items-center gap-2">
-            <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-neutral-100 text-neutral-700 border border-neutral-200">
-              {course.code}
-            </span>
-            {data.enrollment.isMandatory && (
-              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 border border-blue-200">
-                Zorunlu Ders
-              </span>
-            )}
+    <div className="animate-fade-in-up space-y-6 sm:space-y-8">
+      <section className="rounded-xl border border-outline-variant bg-surface-container-lowest px-5 py-5 shadow-[0_8px_24px_rgba(25,28,30,0.06)] sm:px-6 sm:py-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <Link
+              href="/ogrenci"
+              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-on-surface-variant transition-colors hover:text-on-surface"
+            >
+              <MaterialIcon name="arrow_back" className="text-lg" /> Öğrenci paneline dön
+            </Link>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-on-surface-variant">
+              <span className="font-semibold text-primary">{course.code}</span>
+              {data.enrollment.isMandatory && (
+                <><span aria-hidden="true">·</span><span>Zorunlu ders</span></>
+              )}
+            </div>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-on-surface sm:text-3xl">
+              {course.name}
+            </h1>
+            <p className="mt-2 text-sm leading-5 text-on-surface-variant">
+              Öğretim Üyesi: <span className="font-medium text-on-surface">{course.teacher.name ?? course.teacher.email}</span>
+              {" · "}Öğrenci No: <span className="font-mono text-on-surface">{data.enrollment.schoolNumberOnList}</span>
+            </p>
           </div>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
-            {course.name}
-          </h1>
-          <p className="mt-1 text-sm text-neutral-600">
-            Öğretim Üyesi: <span className="font-medium text-neutral-800">{course.teacher.name ?? course.teacher.email}</span>
-            {" · "}Öğrenci No: <span className="font-mono text-neutral-800">{data.enrollment.schoolNumberOnList}</span>
-          </p>
-        </div>
 
-        <div className="flex items-center gap-2">
           <Button
             type="button"
             variant="secondary"
             size="sm"
             onClick={() => void refetchData()}
             disabled={isRefreshing}
-            className="border border-neutral-200 text-xs shadow-none gap-1.5"
+            className="min-h-11 shrink-0 gap-1.5 shadow-none"
           >
             <MaterialIcon
               name="sync"
@@ -118,253 +124,136 @@ export function CourseDetailView({ initialData }: CourseDetailViewProps) {
             Yenile
           </Button>
         </div>
-      </div>
-
-      {successToast && (
-        <div className="flex items-center gap-3 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-900 shadow-sm animate-fade-in-up">
-          <MaterialIcon name="check_circle" className="text-2xl text-emerald-600 shrink-0" />
-          <div className="text-sm font-semibold">{successToast}</div>
-        </div>
-      )}
+      </section>
 
       {summary.hasLimit && (
-        <div>
-          {summary.isFailed ? (
-            <div className="flex items-start gap-3 rounded-2xl border-2 border-red-400 bg-red-50/90 p-4 text-red-900 shadow-sm">
-              <MaterialIcon name="cancel" className="text-2xl text-red-600 shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-bold text-sm text-red-900">Devamsızlıktan Kaldınız!</h3>
-                <p className="mt-0.5 text-xs text-red-800 leading-relaxed">
-                  Bu ders için izin verilen devamsızlık sınırını ({summary.limit} oturum) aştınız. Toplam devamsızlığınız: <strong>{summary.totalAbsenceCount} oturum</strong>.
-                </p>
-              </div>
-            </div>
-          ) : summary.isAtLimit ? (
-            <div className="flex items-start gap-3 rounded-2xl border-2 border-red-300 bg-red-50/80 p-4 text-red-900 shadow-sm">
-              <MaterialIcon name="warning" className="text-2xl text-red-600 shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-bold text-sm text-red-900">Devamsızlık Sınırındasınız!</h3>
-                <p className="mt-0.5 text-xs text-red-800 leading-relaxed">
-                  İzin verilen son devamsızlık hakkınızı kullandınız ({summary.totalAbsenceCount}/{summary.limit} oturum). Bir sonraki devamsızlığınızda dersten kalacaksınız!
-                </p>
-              </div>
-            </div>
-          ) : summary.isNearLimit ? (
-            <div className="flex items-start gap-3 rounded-2xl border-2 border-amber-300 bg-amber-50/90 p-4 text-amber-900 shadow-sm">
-              <MaterialIcon name="error_outline" className="text-2xl text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-bold text-sm text-amber-900">Dikkat: Devamsızlık Sınırına Yaklaştınız</h3>
-                <p className="mt-0.5 text-xs text-amber-800 leading-relaxed">
-                  Toplam {summary.totalAbsenceCount} devamsızlığınız bulunuyor. Sınıra ({summary.limit} oturum) sadece <strong>1 oturum kaldı</strong>. Lütfen derslere düzenli katılın.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 text-emerald-900 shadow-sm">
-              <MaterialIcon name="verified" className="text-xl text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-bold text-xs text-emerald-900">Devamsızlık Durumu Güvenli</h3>
-                <p className="mt-0.5 text-xs text-emerald-700">
-                  Devamsızlık sınırına ulaşmadınız ({summary.totalAbsenceCount}/{summary.limit} oturum). Kalan izin hakkı: <strong>{summary.remainingAllowance} oturum</strong>.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+        <AbsenceLimitMeter
+          absenceCount={summary.totalAbsenceCount}
+          limit={summary.limit!}
+          level={summary.limitLevel === "none" ? "safe" : summary.limitLevel}
+          isFailed={summary.isFailed}
+        />
       )}
 
-      <div>
-        <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-3">
-          Ders Devamsızlık Özeti
+      <section aria-labelledby="attendance-summary-heading">
+        <h2 id="attendance-summary-heading" className="mb-3 text-base font-semibold text-on-surface">
+          Devamsızlık özeti
         </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-xl border border-neutral-200/80 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-neutral-500">Toplam Devamsızlık</span>
-              <span className="grid size-7 place-items-center rounded-lg bg-neutral-100 text-neutral-600">
-                <MaterialIcon name="event_busy" className="text-base" />
-              </span>
-            </div>
-            <p className={cn(
+        <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-[0_8px_24px_rgba(25,28,30,0.05)] sm:grid-cols-4">
+          <div className="border-b border-outline-variant px-4 py-5 sm:border-b-0 sm:px-5">
+            <dt className="text-xs font-medium text-on-surface-variant">Toplam devamsızlık</dt>
+            <dd className={cn(
               "mt-2 text-2xl font-bold tracking-tight tabular-nums",
-              summary.isFailed || summary.isAtLimit ? "text-red-600" : "text-neutral-900",
+              summary.isFailed ? "text-error" : "text-on-surface",
             )}>
               {summary.totalAbsenceCount}
-            </p>
-            <span className="mt-0.5 block text-[11px] text-neutral-400">
+            </dd>
+            <dd className="mt-0.5 text-xs text-on-surface-variant">
               {summary.hasLimit ? `Sınır: ${summary.limit} oturum` : "Sınır belirtilmedi"}
-            </span>
+            </dd>
           </div>
 
-          <div className="rounded-xl border border-neutral-200/80 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-emerald-700">Katıldığı Ders Sayısı</span>
-              <span className="grid size-7 place-items-center rounded-lg bg-emerald-50 text-emerald-600">
-                <MaterialIcon name="check_circle" className="text-base" />
-              </span>
-            </div>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-emerald-700 tabular-nums">
-              {summary.attendedCount} <span className="text-sm font-normal text-neutral-400">/ {summary.totalSessions}</span>
-            </p>
-            <span className="mt-0.5 block text-[11px] text-neutral-400">Tamamlanan oturum</span>
+          <div className="border-b border-l border-outline-variant px-4 py-5 sm:border-b-0 sm:px-5">
+            <dt className="text-xs font-medium text-on-surface-variant">Katıldığı oturum</dt>
+            <dd className="mt-2 text-2xl font-bold tracking-tight text-emerald-700 tabular-nums">
+              {summary.attendedCount} <span className="text-sm font-normal text-on-surface-variant">/ {summary.totalSessions}</span>
+            </dd>
+            <dd className="mt-0.5 text-xs text-on-surface-variant">Tamamlanan oturumlar</dd>
           </div>
 
-          <div className="rounded-xl border border-neutral-200/80 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-neutral-600">Kalan Devamsızlık Hakkı</span>
-              <span className="grid size-7 place-items-center rounded-lg bg-neutral-100 text-neutral-600">
-                <MaterialIcon name="pending_actions" className="text-base" />
-              </span>
-            </div>
-            <p className={cn(
+          <div className="px-4 py-5 sm:border-l sm:border-outline-variant sm:px-5">
+            <dt className="text-xs font-medium text-on-surface-variant">Kalan hak</dt>
+            <dd className={cn(
               "mt-2 text-2xl font-bold tracking-tight tabular-nums",
               summary.remainingAllowance !== null && summary.remainingAllowance <= 0
-                ? "text-red-600"
+                ? "text-error"
                 : summary.remainingAllowance === 1
                 ? "text-amber-600"
-                : "text-neutral-900",
+                : "text-on-surface",
             )}>
               {summary.hasLimit && summary.remainingAllowance !== null
                 ? `${summary.remainingAllowance} oturum`
                 : "Belirtilmedi"}
-            </p>
-            <span className="mt-0.5 block text-[11px] text-neutral-400">
-              {summary.hasLimit ? (summary.isFailed ? "Sınır aşıldı" : summary.isAtLimit ? "Sınırda" : "Kalan hak") : "Öğretmen sınır belirlemedi"}
-            </span>
+            </dd>
+            <dd className="mt-0.5 text-xs text-on-surface-variant">
+              {summary.hasLimit ? (summary.isFailed ? "Hak bitti — kaldınız" : "Kalan hak") : "Öğretmen sınır belirlemedi"}
+            </dd>
           </div>
 
-          <div className="rounded-xl border border-neutral-200/80 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-neutral-600">Katılım Oranı</span>
-              <span className="grid size-7 place-items-center rounded-lg bg-neutral-100 text-neutral-600">
-                <MaterialIcon name="pie_chart" className="text-base" />
-              </span>
-            </div>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-neutral-900 tabular-nums">
+          <div className="border-l border-outline-variant px-4 py-5 sm:px-5">
+            <dt className="text-xs font-medium text-on-surface-variant">Katılım oranı</dt>
+            <dd className="mt-2 text-2xl font-bold tracking-tight text-on-surface tabular-nums">
               %{summary.attendanceRate}
-            </p>
-            <span className="mt-0.5 block text-[11px] text-neutral-400">
+            </dd>
+            <dd className="mt-0.5 text-xs text-on-surface-variant">
               Devamsızlık Oranı: %{summary.absencePercentage}
-            </span>
+            </dd>
           </div>
-        </div>
-      </div>
+        </dl>
+      </section>
 
-      <div>
-        <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-3">
-          QR ile Yoklama
-        </h2>
+      <section
+        aria-labelledby="qr-attendance-heading"
+        className={cn(
+          "overflow-hidden rounded-xl border bg-surface-container-lowest shadow-[0_8px_24px_rgba(25,28,30,0.05)]",
+          activeSession ? "border-emerald-200" : "border-outline-variant",
+        )}
+      >
+        <div className="border-b border-outline-variant px-5 py-4 sm:px-6">
+          <h2 id="qr-attendance-heading" className="text-base font-semibold text-on-surface">
+            QR ile yoklama
+          </h2>
+        </div>
 
         {activeSession ? (
           activeSession.alreadyAttended ? (
-            <div className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm transition-all sm:p-6">
-              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500" />
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-3.5">
-                  <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
-                    <MaterialIcon name="verified" className="text-2xl" filled />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                        Yoklamanız Alındı
-                      </span>
-                      <span className="text-xs text-neutral-400">•</span>
-                      <span className="text-xs font-medium text-neutral-500">
-                        Hafta {activeSession.weekNumber}, {activeSession.sessionIndexInWeek}. Oturum
-                      </span>
-                    </div>
-                    <h3 className="mt-1 text-base font-bold text-neutral-900">
-                      Katılımınız Başarıyla Kaydedildi
-                    </h3>
-                    <p className="mt-0.5 text-xs text-neutral-500">
-                      Bu aktif oturum için yoklama kaydınız sistemde mevcuttur. Tekrar okutmanıza gerek yoktur.
-                    </p>
-                  </div>
+            <div className="flex flex-col gap-4 bg-emerald-50/45 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
+                  <MaterialIcon name="check_circle" className="text-xl" filled />
+                  <span>Katılım kaydedildi</span>
                 </div>
-
-                <div className="flex items-center self-start sm:self-center">
-                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200/80 px-3.5 py-2 text-xs font-semibold text-emerald-800">
-                    <MaterialIcon name="check_circle" className="text-base text-emerald-600" />
-                    Katılım Onaylandı
-                  </span>
-                </div>
+                <p className="mt-2 text-sm text-on-surface-variant">
+                  {attendanceSlotLabel(activeSession)} için tekrar QR okutmanız gerekmez.
+                </p>
               </div>
             </div>
           ) : (
-            <div className="relative overflow-hidden rounded-2xl border border-emerald-200/90 bg-white p-5 shadow-[0_4px_24px_-4px_rgba(16,185,129,0.12)] transition-all sm:p-6">
-              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500" />
-
-              <div className="flex flex-col gap-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200/70 px-3 py-1 text-xs font-bold text-emerald-700">
-                    <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                    </span>
-                    YOKLAMA AÇIK
-                  </div>
-
-                  <div className="flex items-center gap-1.5 rounded-lg bg-neutral-100/80 px-2.5 py-1 text-xs font-medium text-neutral-600">
-                    <span className="font-semibold text-neutral-800">Hafta {activeSession.weekNumber}</span>
-                    <span className="text-neutral-300">•</span>
-                    <span>{activeSession.sessionIndexInWeek}. Oturum</span>
-                  </div>
+            <div className="flex flex-col gap-5 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-sm font-medium text-emerald-800">
+                  <MaterialIcon name="sensors" className="text-lg" />
+                  <span>Yoklama şu anda açık</span>
                 </div>
-
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-lg font-bold tracking-tight text-neutral-900 sm:text-xl">
-                      {course.name}
-                    </h3>
-                    <p className="mt-1 text-xs text-neutral-500 leading-relaxed">
-                      Öğretmen ekranındaki QR kodu kameraya göstererek derse katılımınızı onaylayın.
-                    </p>
-                  </div>
-
-                  <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600">
-                    <MaterialIcon name="qr_code_scanner" className="text-2xl" />
-                  </div>
-                </div>
-
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setIsQrModalOpen(true)}
-                    className="w-full inline-flex h-12 items-center justify-center gap-2.5 rounded-xl bg-neutral-900 px-6 font-semibold text-sm text-white shadow-sm transition-all hover:bg-neutral-800 active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2"
-                  >
-                    <MaterialIcon name="photo_camera" className="text-lg text-emerald-400" />
-                    <span>QR Kodu Tara ve Katıl</span>
-                  </button>
-                </div>
+                <p className="mt-2 text-sm text-on-surface-variant">
+                  {attendanceSlotLabel(activeSession)}
+                </p>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setIsQrModalOpen(true)}
+                className="inline-flex min-h-12 w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-700 px-5 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-800 focus-visible:ring-offset-2 sm:w-auto"
+              >
+                <MaterialIcon name="qr_code_scanner" className="text-xl" />
+                QR Kodunu Tara
+              </button>
             </div>
           )
         ) : (
-          <div className="rounded-2xl border border-neutral-200/80 bg-neutral-50/70 p-5 sm:p-6 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3.5">
-                <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-neutral-200/60 text-neutral-400">
-                  <MaterialIcon name="qr_code_2" className="text-2xl" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-neutral-800">
-                    Bu ders için şu anda aktif yoklama yok
-                  </h3>
-                  <p className="mt-0.5 text-xs text-neutral-500">
-                    Öğretmeniniz yoklama başlattığında burada QR kod okutma butonu açılacaktır.
-                  </p>
-                </div>
-              </div>
-
-              <span className="inline-flex items-center gap-1.5 self-start sm:self-center rounded-lg border border-neutral-200 bg-white px-3.5 py-1.5 text-xs font-medium text-neutral-400">
-                <MaterialIcon name="lock" className="text-sm" />
-                Oturum Kapalı
-              </span>
+          <div className="flex items-start gap-3 px-5 py-5 sm:px-6">
+            <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-surface-container text-on-surface-variant">
+              <MaterialIcon name="qr_code_2" className="text-xl" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-on-surface">Aktif yoklama yok</p>
+              <p className="mt-1 text-sm leading-5 text-on-surface-variant">
+                Öğretmeniniz oturumu başlattığında QR okutma düğmesi burada görünür.
+              </p>
             </div>
           </div>
         )}
-      </div>
+      </section>
 
       <div>
         <div className="flex items-center justify-between mb-3">
@@ -374,12 +263,12 @@ export function CourseDetailView({ initialData }: CourseDetailViewProps) {
               Bu ders için gerçekleştirilen oturumlar ve katılım durumunuz tarih sırasıyla listelenmektedir.
             </p>
           </div>
-          <span className="text-xs font-mono text-neutral-500">
+          <span className="text-xs tabular-nums text-neutral-500">
             Toplam {data.history.length} oturum
           </span>
         </div>
 
-        <div className="hidden sm:block overflow-hidden rounded-xl border border-neutral-200/80 bg-white shadow-sm">
+        <div className="hidden overflow-hidden rounded-xl border border-neutral-200/80 bg-white sm:block">
           <Table>
             <TableHead>
               <Th>Hafta / Oturum</Th>
@@ -408,10 +297,14 @@ export function CourseDetailView({ initialData }: CourseDetailViewProps) {
                       <Td>
                         <div className="min-w-0">
                           <span className="font-semibold text-xs text-neutral-900">
-                            Hafta {session.weekNumber}
+                            {session.slotType === "CALENDAR_PERIOD" && session.sessionDate
+                              ? new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" }).format(new Date(session.sessionDate))
+                              : `Hafta ${session.weekNumber}`}
                           </span>
                           <span className="block font-mono text-[11px] text-neutral-400">
-                            {session.sessionIndexInWeek}. Oturum
+                            {session.slotType === "CALENDAR_PERIOD"
+                              ? `${session.lessonPeriod}. Ders`
+                              : `${session.sessionIndexInWeek}. Oturum`}
                           </span>
                         </div>
                       </Td>
@@ -421,8 +314,7 @@ export function CourseDetailView({ initialData }: CourseDetailViewProps) {
                           {formatDateTime(session.startedAt)}
                         </span>
                         {session.sessionStatus === "ACTIVE" && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600">
-                            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[10px] font-semibold text-emerald-700">
                             Oturum Devam Ediyor
                           </span>
                         )}
@@ -477,9 +369,9 @@ export function CourseDetailView({ initialData }: CourseDetailViewProps) {
           </Table>
         </div>
 
-        <div className="block sm:hidden space-y-3">
+        <div className="block overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-[0_8px_24px_rgba(25,28,30,0.05)] sm:hidden">
           {data.history.length === 0 ? (
-            <div className="rounded-xl border border-neutral-200/80 bg-white p-8 text-center text-sm text-neutral-500">
+            <div className="bg-white p-8 text-center text-sm text-neutral-500">
               <MaterialIcon name="history_toggle_off" className="text-3xl text-neutral-300 mx-auto" />
               <p className="mt-2 font-medium text-neutral-700">Henüz yoklama oturumu yapılmamış</p>
             </div>
@@ -491,12 +383,12 @@ export function CourseDetailView({ initialData }: CourseDetailViewProps) {
               return (
                 <div
                   key={session.sessionId}
-                  className="rounded-xl border border-neutral-200/80 bg-white p-4 shadow-sm space-y-2.5"
+                  className="space-y-2.5 border-b border-outline-variant px-4 py-4 last:border-b-0"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <h4 className="text-xs font-bold text-neutral-900">
-                        Hafta {session.weekNumber} · {session.sessionIndexInWeek}. Oturum
+                        {attendanceSlotLabel(session)}
                       </h4>
                       <span className="font-mono text-[11px] text-neutral-400 block mt-0.5" suppressHydrationWarning>
                         {formatDateTime(session.startedAt)}

@@ -7,9 +7,9 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = process.env.DATABASE_URL?.trim();
   if (!connectionString) {
-    throw new Error("DATABASE_URL ortam değişkeni tanımlanmalıdır.");
+    throw new Error("DATABASE_URL tanımlı değil.");
   }
 
   const adapter = new PrismaPg({ connectionString });

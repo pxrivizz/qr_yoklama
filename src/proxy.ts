@@ -16,7 +16,15 @@ export default auth((request) => {
     return homeWithError(request.url, "oturum");
   }
 
-  if (path.startsWith("/ogretmen") && session.user.role !== "TEACHER") {
+  if (
+    path.startsWith("/ogretmen") &&
+    session.user.role !== "TEACHER" &&
+    session.user.role !== "ADMIN"
+  ) {
+    return homeWithError(request.url, "yetki");
+  }
+
+  if (path.startsWith("/admin") && session.user.role !== "ADMIN") {
     return homeWithError(request.url, "yetki");
   }
 
@@ -31,5 +39,5 @@ export default auth((request) => {
 });
 
 export const config = {
-  matcher: ["/panel/:path*", "/ogretmen/:path*", "/ogrenci/:path*", "/tara/:path*"],
+  matcher: ["/panel/:path*", "/admin/:path*", "/ogretmen/:path*", "/ogrenci/:path*", "/tara/:path*"],
 };

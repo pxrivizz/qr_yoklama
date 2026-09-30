@@ -1,4 +1,4 @@
-import { signOut } from "@/auth";
+import { auth, signOut } from "@/auth";
 import { TeacherShell } from "@/components/layout/teacher-shell";
 
 type TeacherLayoutProps = {
@@ -10,7 +10,7 @@ type TeacherLayoutProps = {
   children: React.ReactNode;
 };
 
-export function TeacherLayout({
+export async function TeacherLayout({
   userName,
   userImage,
   pageTitle,
@@ -18,6 +18,7 @@ export function TeacherLayout({
   searchPlaceholder,
   children,
 }: TeacherLayoutProps) {
+  const session = await auth();
   async function handleSignOut() {
     "use server";
     await signOut({ redirectTo: "/" });
@@ -31,6 +32,7 @@ export function TeacherLayout({
       showSearch={showSearch}
       searchPlaceholder={searchPlaceholder}
       onSignOut={handleSignOut}
+      isImpersonating={session?.user.role === "ADMIN"}
     >
       {children}
     </TeacherShell>

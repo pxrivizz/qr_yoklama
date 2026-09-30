@@ -21,8 +21,11 @@ export type NotificationItem = {
   session?: {
     id: string;
     status: string;
-    weekNumber: number;
-    sessionIndexInWeek: number;
+    slotType: "WEEKLY" | "CALENDAR_PERIOD";
+    weekNumber: number | null;
+    sessionIndexInWeek: number | null;
+    sessionDate: Date | null;
+    lessonPeriod: number | null;
     startedAt: Date;
   } | null;
 };
@@ -106,8 +109,11 @@ export async function getStudentNotifications(studentId: string, limit = 20) {
           select: {
             id: true,
             status: true,
+            slotType: true,
             weekNumber: true,
             sessionIndexInWeek: true,
+            sessionDate: true,
+            lessonPeriod: true,
             startedAt: true,
           },
         },

@@ -1,0 +1,42 @@
+[Unit]
+Description=MSKU QR Yoklama Sistemi (Next.js)
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=qr-agent
+Group=qr-agent
+WorkingDirectory=/opt/qr_yoklama
+EnvironmentFile=/opt/qr_yoklama/.env
+Environment="NODE_ENV=production"
+Environment="PORT=3000"
+ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1
+Restart=always
+RestartSec=3
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateDevices=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProcSubset=pid
+CapabilityBoundingSet=
+LockPersonality=true
+RemoveIPC=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+UMask=0077
+ReadOnlyPaths=/opt/qr_yoklama
+ReadWritePaths=/opt/qr_yoklama/.next/cache /var/lib/qr-yoklama-bug-reports
+
+[Install]
+WantedBy=multi-user.target

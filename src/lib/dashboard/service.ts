@@ -1,6 +1,7 @@
 import "server-only";
 
 import { calculatePlannedSessionCount } from "@/lib/attendance/schedule";
+import { sessionDateKey } from "@/lib/attendance/slot";
 import { prisma } from "@/lib/db";
 
 export type DashboardStats = {
@@ -20,8 +21,11 @@ export type ActiveSessionSummary = {
   courseId: string;
   courseName: string;
   courseCode: string;
-  weekNumber: number;
-  sessionIndexInWeek: number;
+  slotType: "WEEKLY" | "CALENDAR_PERIOD";
+  weekNumber: number | null;
+  sessionIndexInWeek: number | null;
+  sessionDate: string | null;
+  lessonPeriod: number | null;
   startedAt: Date;
   presentCount: number;
   enrollmentCount: number;
@@ -32,8 +36,11 @@ export type RecentSessionSummary = {
   courseId: string;
   courseName: string;
   courseCode: string;
-  weekNumber: number;
-  sessionIndexInWeek: number;
+  slotType: "WEEKLY" | "CALENDAR_PERIOD";
+  weekNumber: number | null;
+  sessionIndexInWeek: number | null;
+  sessionDate: string | null;
+  lessonPeriod: number | null;
   startedAt: Date;
   status: "ACTIVE" | "CLOSED";
   presentCount: number;
@@ -46,12 +53,22 @@ export type CourseSummaryItem = {
   name: string;
   code: string;
   completedSessions: number;
+  completedSessionSlots: Array<{
+    id: string;
+    slotType: "WEEKLY" | "CALENDAR_PERIOD";
+    weekNumber: number | null;
+    sessionIndexInWeek: number | null;
+    sessionDate: string | null;
+    lessonPeriod: number | null;
+  }>;
   plannedSessions: number;
   progress: number;
   enrollmentCount: number;
   hasActiveSession: boolean;
   totalWeeks: number;
   weeklySessionCount: number;
+  attendanceMode: "STANDARD" | "PREPARATORY";
+  preparatoryDayPlans: Array<{ weekday: number; lessonCount: number }>;
 };
 
 export async function getTeacherDashboardData(teacherId: string) {
@@ -64,6 +81,11 @@ export async function getTeacherDashboardData(teacherId: string) {
       code: true,
       weeklySessionCount: true,
       totalWeeks: true,
+      attendanceMode: true,
+      preparatoryDayPlans: {
+        orderBy: { weekday: "asc" },
+        select: { weekday: true, lessonCount: true },
+      },
       mandatoryAlertLimit: true,
       createdAt: true,
       enrollments: {
@@ -84,8 +106,11 @@ export async function getTeacherDashboardData(teacherId: string) {
         orderBy: { startedAt: "desc" },
         select: {
           id: true,
+          slotType: true,
           weekNumber: true,
           sessionIndexInWeek: true,
+          sessionDate: true,
+          lessonPeriod: true,
           startedAt: true,
           status: true,
           attendanceRecords: {
@@ -118,8 +143,11 @@ export async function getTeacherDashboardData(teacherId: string) {
         courseId: c.id,
         courseName: c.name,
         courseCode: c.code,
+        slotType: active.slotType,
         weekNumber: active.weekNumber,
         sessionIndexInWeek: active.sessionIndexInWeek,
+        sessionDate: active.sessionDate ? sessionDateKey(active.sessionDate) : null,
+        lessonPeriod: active.lessonPeriod,
         startedAt: active.startedAt,
         presentCount: activePresent,
         enrollmentCount: c._count.enrollments,
@@ -148,8 +176,11 @@ export async function getTeacherDashboardData(teacherId: string) {
     courseId: string;
     courseName: string;
     courseCode: string;
-    weekNumber: number;
-    sessionIndexInWeek: number;
+    slotType: "WEEKLY" | "CALENDAR_PERIOD";
+    weekNumber: number | null;
+    sessionIndexInWeek: number | null;
+    sessionDate: string | null;
+    lessonPeriod: number | null;
     startedAt: Date;
     status: "ACTIVE" | "CLOSED";
     presentCount: number;
@@ -170,8 +201,11 @@ export async function getTeacherDashboardData(teacherId: string) {
         courseId: c.id,
         courseName: c.name,
         courseCode: c.code,
+        slotType: s.slotType,
         weekNumber: s.weekNumber,
         sessionIndexInWeek: s.sessionIndexInWeek,
+        sessionDate: s.sessionDate ? sessionDateKey(s.sessionDate) : null,
+        lessonPeriod: s.lessonPeriod,
         startedAt: s.startedAt,
         status: s.status,
         presentCount: attended,
@@ -213,12 +247,24 @@ export async function getTeacherDashboardData(teacherId: string) {
       name: course.name,
       code: course.code,
       completedSessions: completed,
+      completedSessionSlots: course.attendanceSessions
+        .filter((session) => session.status === "CLOSED")
+        .map((session) => ({
+          id: session.id,
+          slotType: session.slotType,
+          weekNumber: session.weekNumber,
+          sessionIndexInWeek: session.sessionIndexInWeek,
+          sessionDate: session.sessionDate ? sessionDateKey(session.sessionDate) : null,
+          lessonPeriod: session.lessonPeriod,
+        })),
       plannedSessions: planned,
       progress,
       enrollmentCount: course._count.enrollments,
       hasActiveSession: course.attendanceSessions.some((s) => s.status === "ACTIVE"),
       totalWeeks: course.totalWeeks,
       weeklySessionCount: course.weeklySessionCount,
+      attendanceMode: course.attendanceMode,
+      preparatoryDayPlans: course.preparatoryDayPlans,
     };
   });
 

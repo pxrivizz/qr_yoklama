@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { DeleteCourseButton } from "@/components/teacher/delete-course-button";
 import { AttendanceStartModal } from "@/components/teacher/attendance-start-modal";
+import type { PreparatoryDayPlan } from "@/lib/attendance/slot";
 
 type CourseListItemProps = {
   course: {
@@ -14,6 +15,16 @@ type CourseListItemProps = {
     plannedSessionCount: number;
     weeklySessionCount: number;
     totalWeeks: number;
+    attendanceMode: "STANDARD" | "PREPARATORY";
+    preparatoryDayPlans: PreparatoryDayPlan[];
+    completedSessions: Array<{
+      id: string;
+      slotType: "WEEKLY" | "CALENDAR_PERIOD";
+      weekNumber: number | null;
+      sessionIndexInWeek: number | null;
+      sessionDate: string | null;
+      lessonPeriod: number | null;
+    }>;
     _count: {
       enrollments: number;
       attendanceSessions: number;
@@ -63,9 +74,11 @@ export function CourseListItem({ course }: CourseListItemProps) {
           <AttendanceStartModal
             courseId={course.id}
             courseName={course.name}
+            attendanceMode={course.attendanceMode}
+            preparatoryDayPlans={course.preparatoryDayPlans}
             totalWeeks={course.totalWeeks}
             weeklySessionCount={course.weeklySessionCount}
-            completedSessionCount={completed}
+            completedSessions={course.completedSessions}
           />
         )}
         <Link

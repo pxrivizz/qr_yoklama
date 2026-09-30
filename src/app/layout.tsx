@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import { SessionIdleGuard } from "@/components/auth/session-idle-guard";
+import { BugReportWidget } from "@/components/bug-reports/bug-report-widget";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -6,10 +9,14 @@ export const metadata: Metadata = {
   description: "QR kod tabanlı güvenli okul yoklama sistemi",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="tr" className="h-full antialiased">
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        {children}
+        <SessionIdleGuard />
+        <BugReportWidget />
+      </body>
     </html>
   );
 }

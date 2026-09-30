@@ -9,6 +9,7 @@ import { isIpAllowed } from "@/lib/attendance/ip";
 import { verifyQrToken } from "@/lib/attendance/qr-token";
 import type { AttendanceScanInput } from "@/lib/attendance/scan-schema";
 import { createQrScanLog } from "@/lib/attendance/qr-log-service";
+import { deriveSessionDeviceFingerprint } from "@/lib/attendance/device-identity";
 
 async function resolveToken(token: string) {
   let claims;
@@ -100,6 +101,7 @@ export async function recordAttendanceScan(
   studentId: string,
   input: AttendanceScanInput,
   context: RequestContext,
+  deviceId: string,
 ) {
   const student = await prisma.user.findUnique({
     where: { id: studentId },
@@ -133,6 +135,11 @@ export async function recordAttendanceScan(
   const attendanceSession = tokenRecord.session;
   const course = attendanceSession.course;
   const className = `${course.code} · ${course.name}`;
+  const deviceFingerprintHash = deriveSessionDeviceFingerprint(
+    deviceId,
+    attendanceSession.id,
+    getServerEnv().AUTH_SECRET,
+  );
 
   const baseLogData = {
     courseId: course.id,
@@ -195,6 +202,38 @@ export async function recordAttendanceScan(
     );
   }
 
+  const ipAddress = context.ipAddress;
+
+  const rejectDeviceReuse = async (): Promise<never> => {
+    await prisma.attendanceAttempt.create({
+      data: {
+        sessionId: attendanceSession.id,
+        enrollmentId: enrollment.id,
+        studentId,
+        tokenNonceHash: tokenRecord.nonceHash,
+        ipAddress,
+        latitude: input.latitude,
+        longitude: input.longitude,
+        accuracyMeters: input.accuracyMeters,
+        deviceFingerprintHash,
+        status: "REJECTED",
+        reasonCode: "DEVICE_ALREADY_USED",
+      },
+    });
+    await createQrScanLog({
+      ...baseLogData,
+      enrollmentId: enrollment.id,
+      result: "DEVICE_ALREADY_USED",
+      resultMessage: "Bu cihazla aynı yoklama için farklı bir hesap üzerinden daha önce başarılı kayıt yapılmış.",
+      metadata: { reasonCode: "DEVICE_ALREADY_USED" },
+    });
+    throw new ApiError(
+      409,
+      "DEVICE_ALREADY_USED",
+      "Bu cihazla aynı yoklamaya başka bir hesap üzerinden daha önce katılım sağlanmış.",
+    );
+  };
+
   const existing = await prisma.attendanceRecord.findUnique({
     where: {
       sessionId_enrollmentId: {
@@ -214,7 +253,18 @@ export async function recordAttendanceScan(
     throw new ApiError(409, "ALREADY_RECORDED", "Bu yoklamaya zaten katıldınız.");
   }
 
-  const ipAddress = context.ipAddress;
+  const conflictingDeviceRecord = await prisma.attendanceRecord.findFirst({
+    where: {
+      sessionId: attendanceSession.id,
+      deviceFingerprintHash,
+      enrollmentId: { not: enrollment.id },
+    },
+    select: { id: true },
+  });
+  if (conflictingDeviceRecord) {
+    await rejectDeviceReuse();
+  }
+
   const hasIpRestrictions = attendanceSession.allowedIpRanges.length > 0;
   if (hasIpRestrictions && (!ipAddress || !isIpAllowed(ipAddress, attendanceSession.allowedIpRanges))) {
     await prisma.attendanceAttempt.create({
@@ -227,6 +277,7 @@ export async function recordAttendanceScan(
         latitude: input.latitude,
         longitude: input.longitude,
         accuracyMeters: input.accuracyMeters,
+        deviceFingerprintHash,
         status: "REJECTED",
         reasonCode: "SCHOOL_NETWORK_REQUIRED",
       },
@@ -261,6 +312,7 @@ export async function recordAttendanceScan(
         longitude: input.longitude,
         accuracyMeters: input.accuracyMeters,
         distanceMeters: location.distanceMeters,
+        deviceFingerprintHash,
         status: "REJECTED",
         reasonCode: "SCHOOL_LOCATION_REQUIRED",
       },
@@ -293,6 +345,7 @@ export async function recordAttendanceScan(
           longitude: input.longitude,
           accuracyMeters: input.accuracyMeters,
           distanceMeters: location.distanceMeters,
+          deviceFingerprintHash,
         },
       });
       await tx.attendanceAttempt.create({
@@ -306,6 +359,7 @@ export async function recordAttendanceScan(
           longitude: input.longitude,
           accuracyMeters: input.accuracyMeters,
           distanceMeters: location.distanceMeters,
+          deviceFingerprintHash,
           status: "ACCEPTED",
         },
       });
@@ -317,6 +371,17 @@ export async function recordAttendanceScan(
       "code" in error &&
       error.code === "P2002"
     ) {
+      const conflictingRecordAfterRace = await prisma.attendanceRecord.findFirst({
+        where: {
+          sessionId: attendanceSession.id,
+          deviceFingerprintHash,
+          enrollmentId: { not: enrollment.id },
+        },
+        select: { id: true },
+      });
+      if (conflictingRecordAfterRace) {
+        await rejectDeviceReuse();
+      }
       throw new ApiError(409, "ALREADY_RECORDED", "Bu yoklamaya zaten katıldınız.");
     }
     throw error;

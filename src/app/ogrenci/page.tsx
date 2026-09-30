@@ -6,8 +6,8 @@ import { auth, signOut } from "@/auth";
 import { StudentProfileSection } from "@/components/student/student-profile-section";
 import { StudentNotifications } from "@/components/student/student-notifications";
 import { ActiveAttendanceBanner } from "@/components/student/active-attendance-banner";
+import { AbsenceLimitMeter } from "@/components/student/absence-limit-meter";
 import { Badge } from "@/components/ui/badge";
-import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MaterialIcon } from "@/components/ui/icons";
 import { prisma } from "@/lib/db";
@@ -91,7 +91,7 @@ export default async function StudentPage({ searchParams }: StudentPageProps) {
 
       <div className="mx-auto grid max-w-3xl gap-6 px-4 py-8 sm:px-6 sm:py-12 animate-fade-in-up stagger-children">
         {uyari === "fotograf_gerekli" && (
-          <div className="flex items-start gap-3 rounded-2xl border border-error-container bg-error-container/30 p-4 text-on-error-container shadow-sm">
+          <div className="flex items-start gap-3 rounded-lg border border-error-container bg-error-container/30 p-4 text-on-error-container">
             <MaterialIcon name="error" className="mt-0.5 text-xl text-error" />
             <div>
               <p className="font-semibold">Yoklama İçin Profil Fotoğrafı Zorunludur</p>
@@ -103,7 +103,7 @@ export default async function StudentPage({ searchParams }: StudentPageProps) {
         )}
 
         {uyari === "numara_gerekli" && (
-          <div className="flex items-start gap-3 rounded-2xl border border-error-container bg-error-container/30 p-4 text-on-error-container shadow-sm">
+          <div className="flex items-start gap-3 rounded-lg border border-error-container bg-error-container/30 p-4 text-on-error-container">
             <MaterialIcon name="error" className="mt-0.5 text-xl text-error" />
             <div>
               <p className="font-semibold">Öğrenci Numarası Doğrulanmalıdır</p>
@@ -115,7 +115,7 @@ export default async function StudentPage({ searchParams }: StudentPageProps) {
         )}
 
         {isPhotoMissing && !uyari && (
-          <div className="flex items-start gap-3 rounded-2xl border border-error-container bg-error-container/20 p-4 text-on-error-container shadow-sm">
+          <div className="flex items-start gap-3 rounded-lg border border-error-container bg-error-container/20 p-4 text-on-error-container">
             <MaterialIcon name="warning" className="mt-0.5 text-xl text-error" />
             <div>
               <p className="font-semibold">Profil Fotoğrafı Eksik (Zorunlu)</p>
@@ -126,22 +126,25 @@ export default async function StudentPage({ searchParams }: StudentPageProps) {
           </div>
         )}
 
-        {/* Aktif Yoklama Oturumu Bildirimi */}
         <ActiveAttendanceBanner initialSessions={activeSessions} />
 
         <section>
-          <p className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">Öğrenci paneli</p>
-          <h1 className="mt-2 font-h1 text-h1 text-on-surface">Merhaba, {student.name ?? "öğrenci"}</h1>
+          <h1 className="font-h1 text-h1 text-on-surface">Merhaba, {student.name ?? "öğrenci"}</h1>
           <p className="mt-2 font-body-lg text-body-lg text-on-surface-variant">
             Profil bilgilerinizi yönetin ve ders yoklamalarına katılın.
           </p>
+          <div className="mt-4 flex items-start gap-3 rounded-xl border border-error bg-error-container p-4">
+            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-error opacity-40" />
+              <span className="relative flex h-8 w-8 animate-pulse items-center justify-center rounded-full bg-error text-lg font-bold text-on-error">
+                !
+              </span>
+            </div>
+            <p className="font-body-lg text-body-lg text-on-error-container">
+              Bu sistem şu an geliştirme sürecinde olduğu için hatalı veriler vb. olabilir. Lütfen yoklama verilerini ciddiye almayınız.
+            </p>
+          </div>
         </section>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <ButtonLink href="/tara" size="lg" className="w-full gap-2 sm:w-fit btn-lift press-scale shadow-sm hover:shadow">
-            <MaterialIcon name="qr_code_scanner" /> QR kodunu okut
-          </ButtonLink>
-        </div>
 
         <StudentProfileSection student={student} />
 
@@ -179,20 +182,18 @@ export default async function StudentPage({ searchParams }: StudentPageProps) {
                           {enrollment.course.code}
                         </span>
                         {enrollment.isMandatory && (
-                          <span className="rounded-full bg-primary/10 px-2 py-0.5 font-label-sm text-[11px] font-medium text-primary">
+                          <span className="text-xs font-medium text-primary">
                             Zorunlu
                           </span>
                         )}
                         {hasPendingActive && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800 border border-emerald-300 animate-pulse">
-                            <span className="size-1.5 rounded-full bg-emerald-500" />
-                            Yoklama Başlatıldı!
+                          <span className="text-xs font-semibold text-emerald-700">
+                            Yoklama açık
                           </span>
                         )}
                         {attendedActive && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200">
-                            <MaterialIcon name="check" className="text-xs" />
-                            Oturuma Katıldınız
+                          <span className="text-xs font-medium text-emerald-700">
+                            Katılım kaydedildi
                           </span>
                         )}
                       </div>
@@ -213,6 +214,16 @@ export default async function StudentPage({ searchParams }: StudentPageProps) {
                           )}
                         </span>
                       </div>
+                      {enrollment.course.mandatoryAlertLimit !== null && enrollment.limitLevel !== "none" && (
+                        <AbsenceLimitMeter
+                          absenceCount={enrollment.absentCount}
+                          limit={enrollment.course.mandatoryAlertLimit}
+                          level={enrollment.limitLevel}
+                          isFailed={enrollment.isFailed}
+                          compact
+                          className="mt-3 max-w-md"
+                        />
+                      )}
                     </div>
 
                     <div className="flex shrink-0 items-center gap-2.5">
@@ -220,11 +231,6 @@ export default async function StudentPage({ searchParams }: StudentPageProps) {
                         <Badge variant="error" className="gap-1 bg-red-100 text-red-900 border-red-300 font-bold px-2.5 py-1">
                           <MaterialIcon name="cancel" className="text-sm text-red-700" />
                           Kaldın ({enrollment.absentCount}/{enrollment.course.mandatoryAlertLimit})
-                        </Badge>
-                      ) : enrollment.isAtLimit ? (
-                        <Badge variant="error" className="gap-1 px-2.5 py-1 font-semibold">
-                          <MaterialIcon name="warning" className="text-sm" />
-                          Sınırda ({enrollment.absentCount}/{enrollment.course.mandatoryAlertLimit})
                         </Badge>
                       ) : enrollment.isNearLimit ? (
                         <Badge variant="warning" className="gap-1 px-2.5 py-1 font-medium">

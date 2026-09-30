@@ -1,14 +1,13 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
-import { auth } from "@/auth";
 import { TeacherLayout } from "@/components/layout/teacher-layout";
 import { ButtonLink } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/ui/icons";
 import { CourseCreateModal } from "@/components/teacher/course-create-modal";
 import { AttendanceStartModal } from "@/components/teacher/attendance-start-modal";
 import { getTeacherDashboardData } from "@/lib/dashboard/service";
-import { prisma } from "@/lib/db";
+import { requireTeacher } from "@/lib/auth/authorization";
+import { formatPreparatorySlot } from "@/lib/attendance/slot";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("tr-TR", {
@@ -29,30 +28,7 @@ function formatSessionDate(date: Date) {
 }
 
 export default async function TeacherDashboard() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/giris");
-  if (session.user.role !== "TEACHER") redirect("/ogrenci");
-
-  const teacher = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, name: true, email: true, role: true, image: true },
-  });
-
-  if (!teacher || teacher.role !== "TEACHER") {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-background px-4">
-        <div className="max-w-md text-center">
-          <h1 className="text-xl font-semibold text-neutral-900">Öğretmen hesabı bulunamadı</h1>
-          <p className="mt-2 text-sm text-neutral-600">
-            Giriş yaptığınız hesap henüz öğretmen rolüyle yetkilendirilmemiş. Sistem yöneticinizle iletişime geçin.
-          </p>
-          <Link href="/" className="mt-4 inline-block text-sm font-medium text-neutral-900 underline">
-            Ana sayfaya dön
-          </Link>
-        </div>
-      </main>
-    );
-  }
+  const teacher = await requireTeacher();
 
   const { stats, recentSessions, coursesSummary } =
     await getTeacherDashboardData(teacher.id);
@@ -111,7 +87,7 @@ export default async function TeacherDashboard() {
             <p className="mt-2 text-3xl font-semibold tracking-tight text-neutral-900 tabular-nums">
               {stats.totalEnrollments}
             </p>
-            <span className="mt-1 block text-xs text-neutral-400">Toplam mevcud</span>
+            <span className="mt-1 block text-xs text-neutral-400">Toplam mevcut</span>
           </div>
 
           <div className="rounded-xl border border-neutral-200/80 bg-white p-5">
@@ -199,9 +175,11 @@ export default async function TeacherDashboard() {
                           <AttendanceStartModal
                             courseId={c.id}
                             courseName={c.name}
+                            attendanceMode={c.attendanceMode}
+                            preparatoryDayPlans={c.preparatoryDayPlans}
                             totalWeeks={c.totalWeeks}
                             weeklySessionCount={c.weeklySessionCount}
-                            completedSessionCount={c.completedSessions}
+                            completedSessions={c.completedSessionSlots}
                           />
                         )}
                         <ButtonLink
@@ -264,7 +242,9 @@ export default async function TeacherDashboard() {
                           </span>
                           <span className="text-neutral-300">·</span>
                           <span className="text-xs text-neutral-500">
-                            H{sessionItem.weekNumber} / O{sessionItem.sessionIndexInWeek}
+                            {sessionItem.slotType === "CALENDAR_PERIOD" && sessionItem.sessionDate && sessionItem.lessonPeriod
+                              ? formatPreparatorySlot(sessionItem.sessionDate, sessionItem.lessonPeriod)
+                              : `H${sessionItem.weekNumber} / O${sessionItem.sessionIndexInWeek}`}
                           </span>
                         </div>
                         <p className="mt-0.5 truncate text-xs text-neutral-700">

@@ -1,41 +1,17 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-
-import { auth } from "@/auth";
 import { TeacherLayout } from "@/components/layout/teacher-layout";
 import { ButtonLink } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/ui/icons";
 import { prisma } from "@/lib/db";
 import { getQrScanLogs } from "@/lib/attendance/qr-log-service";
 import { QrLogsView } from "@/components/teacher/qr-logs-view";
+import { BugReportsView } from "@/components/teacher/bug-reports-view";
+import { listBugReports } from "@/lib/bug-reports/service";
+import { requireTeacher } from "@/lib/auth/authorization";
 
 export default async function TeacherLogsPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/giris");
-  if (session.user.role !== "TEACHER") redirect("/ogrenci");
+  const teacher = await requireTeacher();
 
-  const teacher = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, name: true, email: true, role: true, image: true },
-  });
-
-  if (!teacher || teacher.role !== "TEACHER") {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-background px-4">
-        <div className="max-w-md text-center">
-          <h1 className="text-xl font-semibold text-neutral-900">Öğretmen hesabı bulunamadı</h1>
-          <p className="mt-2 text-sm text-neutral-600">
-            Bu sayfayı görüntülemek için öğretmen yetkisine sahip bir hesapla giriş yapmalısınız.
-          </p>
-          <Link href="/" className="mt-4 inline-block text-sm font-medium text-neutral-900 underline">
-            Ana sayfaya dön
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  const [courses, initialData] = await Promise.all([
+  const [courses, initialData, bugReportData] = await Promise.all([
     prisma.course.findMany({
       where: { teacherId: teacher.id },
       select: { id: true, name: true, code: true },
@@ -46,13 +22,14 @@ export default async function TeacherLogsPage() {
       page: 1,
       pageSize: 20,
     }),
+    listBugReports({ page: 1, pageSize: 20 }),
   ]);
 
   return (
     <TeacherLayout
       userName={teacher.name ?? teacher.email}
       userImage={teacher.image}
-      pageTitle="QR Okutma Logları"
+      pageTitle="Sistem Logları"
     >
       <div className="mx-auto max-w-6xl px-6 py-10 sm:px-8 space-y-8">
         {/* Üst Başlık & Eylemler */}
@@ -66,10 +43,10 @@ export default async function TeacherLogsPage() {
             </div>
             <h1 className="mt-2 text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl flex items-center gap-2.5">
               <MaterialIcon name="receipt_long" className="text-neutral-700" />
-              QR Okutma Logları
+              Sistem Logları
             </h1>
             <p className="mt-1 text-sm text-neutral-600">
-              Öğrencilerin QR kodlarını ne zaman, nereden, hangi kaynaktan ve cihazdan okuttuğunu anlık olarak inceleyin.
+              Kullanıcı hata bildirimlerini yanıtlayın, çözüm durumlarını yönetin ve QR okutma denetim kayıtlarını inceleyin.
             </p>
           </div>
 
@@ -93,7 +70,19 @@ export default async function TeacherLogsPage() {
           </div>
         </div>
 
-        {/* Ana Log Listesi ve Filtreleme Bileşeni */}
+        <BugReportsView
+          initialReports={bugReportData.reports}
+          initialTotal={bugReportData.pagination.total}
+          initialSummary={bugReportData.summary}
+        />
+
+        <div className="border-t border-neutral-200 pt-8">
+          <h2 className="text-lg font-bold text-neutral-900">QR okutma kayıtları</h2>
+          <p className="mt-1 text-sm text-neutral-600">
+            Yoklama denemelerini, ağ ve konum kontrollerini ayrıntılı inceleyin.
+          </p>
+        </div>
+
         <QrLogsView
           initialLogs={initialData.logs}
           initialTotal={initialData.pagination.total}

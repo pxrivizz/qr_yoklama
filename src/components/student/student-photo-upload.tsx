@@ -168,12 +168,12 @@ export function StudentPhotoUpload({ currentImage }: StudentPhotoUploadProps) {
               Profil Fotoğrafı
             </h3>
             {currentImage ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-2.5 py-0.5 font-label-sm text-label-sm text-secondary">
-                <MaterialIcon name="check_circle" className="text-sm" /> Kayıtlı
+              <span className="font-label-sm text-label-sm font-medium text-secondary">
+                Kayıtlı
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-error-container px-2.5 py-0.5 font-label-sm text-label-sm text-on-error-container">
-                <MaterialIcon name="error" className="text-sm" /> Zorunlu
+              <span className="font-label-sm text-label-sm font-medium text-error">
+                Zorunlu
               </span>
             )}
           </div>

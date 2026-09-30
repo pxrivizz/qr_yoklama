@@ -12,9 +12,12 @@ const statusLabels: Record<AttendanceStatus, string> = {
 };
 
 function sessionColumnLabel(session: CourseAttendanceReport["sessions"][number]) {
-  const day = String(session.startedAt.getDate()).padStart(2, "0");
-  const month = String(session.startedAt.getMonth() + 1).padStart(2, "0");
-  return `H${session.weekNumber}.O${session.sessionIndexInWeek} (${day}.${month})`;
+  const labelDate = session.sessionDate ?? session.startedAt;
+  const day = String(labelDate.getUTCDate()).padStart(2, "0");
+  const month = String(labelDate.getUTCMonth() + 1).padStart(2, "0");
+  return session.slotType === "CALENDAR_PERIOD"
+    ? `${day}.${month} · ${session.lessonPeriod}. Ders`
+    : `H${session.weekNumber}.O${session.sessionIndexInWeek} (${day}.${month})`;
 }
 
 const thinBorder = {

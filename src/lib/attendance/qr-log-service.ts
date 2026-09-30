@@ -260,7 +260,15 @@ export async function getQrScanLogs(params: GetQrScanLogsParams) {
           select: { id: true, name: true, code: true },
         },
         session: {
-          select: { id: true, weekNumber: true, sessionIndexInWeek: true, status: true },
+          select: {
+            id: true,
+            slotType: true,
+            weekNumber: true,
+            sessionIndexInWeek: true,
+            sessionDate: true,
+            lessonPeriod: true,
+            status: true,
+          },
         },
         user: {
           select: { id: true, name: true, email: true, image: true, schoolNumber: true },

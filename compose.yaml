@@ -1,13 +1,16 @@
+name: qr-yoklama
+
 services:
   postgres:
     image: postgres:17-alpine
+    container_name: qr-yoklama-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: okul_yoklama
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d okul_yoklama"]
       interval: 5s
@@ -16,5 +19,39 @@ services:
     volumes:
       - okul_yoklama_postgres:/var/lib/postgresql/data
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qr-yoklama-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=${DATABASE_URL_DOCKER:?DATABASE_URL_DOCKER must be set}
+      - BUG_REPORT_STORAGE_DIR=/var/lib/qr-yoklama-bug-reports
+    volumes:
+      - qr_yoklama_bug_reports:/var/lib/qr-yoklama-bug-reports
+
+  adminer:
+    image: adminer:latest
+    container_name: qr-yoklama-adminer
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+
 volumes:
   okul_yoklama_postgres:
+  qr_yoklama_bug_reports:

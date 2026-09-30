@@ -3,8 +3,9 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { ApiError } from "@/lib/http/api-error";
 import type { RequestContext } from "@/lib/http/request-context";
+import { calculateAbsenceLimitStatus, type AbsenceLimitLevel } from "@/lib/attendance/absence-limit";
 
-import { normalizePersonName } from "./name";
+import { arePersonNamesCompatible, normalizePersonName } from "./name";
 
 const MAX_STUDENT_PHOTO_BYTES = 2 * 1024 * 1024;
 
@@ -47,6 +48,7 @@ export type StudentCourseItem = {
   isFailed: boolean;
   isAtLimit: boolean;
   isNearLimit: boolean;
+  limitLevel: AbsenceLimitLevel;
   _count: {
     attendanceRecords: number;
   };
@@ -90,10 +92,8 @@ export async function listStudentCourses(studentId: string): Promise<StudentCour
     ).length;
     const absentCount = Math.max(0, totalClosedSessions - attendedCount);
     const limit = enrollment.course.mandatoryAlertLimit;
-    const hasLimit = enrollment.isMandatory && limit !== null && limit > 0;
-    const isFailed = hasLimit && absentCount > limit;
-    const isAtLimit = hasLimit && absentCount === limit;
-    const isNearLimit = hasLimit && absentCount === limit - 1;
+    const { isFailed, isAtLimit, isNearLimit, limitLevel } =
+      calculateAbsenceLimitStatus(absentCount, limit, enrollment.isMandatory);
     const attendanceRate =
       totalClosedSessions > 0 ? Math.round((attendedCount / totalClosedSessions) * 100) : 100;
 
@@ -113,6 +113,7 @@ export async function listStudentCourses(studentId: string): Promise<StudentCour
       isFailed,
       isAtLimit,
       isNearLimit,
+      limitLevel,
       _count: {
         attendanceRecords: attendedCount,
       },
@@ -153,8 +154,14 @@ export async function matchStudentEnrollments(
   const exactMatches = numberMatches.filter(
     (enrollment) => enrollment.normalizedNameOnList === normalizedName,
   );
+  const compatibleMatches = numberMatches.filter(
+    (enrollment) =>
+      enrollment.normalizedNameOnList !== normalizedName &&
+      arePersonNamesCompatible(normalizedName, enrollment.normalizedNameOnList),
+  );
+  const matches = [...exactMatches, ...compatibleMatches];
 
-  if (exactMatches.length === 0) {
+  if (matches.length === 0) {
     throw new ApiError(
       404,
       numberMatches.length > 0 ? "STUDENT_NAME_MISMATCH" : "STUDENT_NOT_ON_LIST",
@@ -164,7 +171,7 @@ export async function matchStudentEnrollments(
     );
   }
 
-  const conflicting = exactMatches.find(
+  const conflicting = matches.find(
     (enrollment) => enrollment.matchedUserId && enrollment.matchedUserId !== studentId,
   );
   if (conflicting) {
@@ -175,12 +182,13 @@ export async function matchStudentEnrollments(
     );
   }
 
-  const enrollmentIds = exactMatches.map((enrollment) => enrollment.id);
+  const enrollmentIds = matches.map((enrollment) => enrollment.id);
+  const canonicalNormalizedName = matches[0].normalizedNameOnList;
   const matchedAt = new Date();
   await prisma.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: studentId },
-      data: { schoolNumber, normalizedName },
+      data: { schoolNumber, normalizedName: canonicalNormalizedName },
     });
     const matched = await tx.enrollment.updateMany({
       where: {
@@ -214,7 +222,7 @@ export async function matchStudentEnrollments(
 
   return {
     matchedCount: enrollmentIds.length,
-    courses: exactMatches.map((enrollment) => enrollment.course),
+    courses: matches.map((enrollment) => enrollment.course),
   };
 }
 

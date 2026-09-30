@@ -1,25 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import jsQR from "jsqr";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import { geolocationErrorMessage } from "@/lib/browser/geolocation-error";
+import {
+  decodeQrFromVideo,
+  getCameraTorchCapability,
+  getCameraZoomCapability,
+  OPTIMAL_CAMERA_CONSTRAINTS,
+  setCameraTorch,
+  setCameraZoom,
+  type ZoomCapability,
+} from "@/lib/browser/qr-scanner-engine";
 
 type ScanState = "ready" | "scanning" | "checking" | "success" | "error";
-
-function tokenFromQrValue(rawValue: string) {
-  const value = rawValue.trim();
-  try {
-    const url = new URL(value, typeof window !== "undefined" ? window.location.origin : "http://localhost");
-    return url.searchParams.get("token") ?? (value.split(".").length === 3 ? value : "");
-  } catch {
-    return value.split(".").length === 3 ? value : "";
-  }
-}
 
 function getSinglePosition(options: PositionOptions) {
   return new Promise<GeolocationPosition>((resolve, reject) => {
@@ -77,11 +75,30 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
       : "Kamera açılmadan önce telefonunuz konum erişimi isteyecek. Ardından öğretmen ekranındaki QR koduna doğrultun.",
   );
 
+  const [zoomCap, setZoomCap] = useState<ZoomCapability>({ supported: false, min: 1, max: 1, step: 0.1, current: 1 });
+  const [currentZoom, setCurrentZoom] = useState(1);
+  const [hasTorch, setHasTorch] = useState(false);
+  const [torchActive, setTorchActive] = useState(false);
+
+  const handleZoomChange = useCallback(async (level: number) => {
+    if (!streamRef.current) return;
+    const ok = await setCameraZoom(streamRef.current, level);
+    if (ok) setCurrentZoom(level);
+  }, []);
+
+  const handleTorchToggle = useCallback(async () => {
+    if (!streamRef.current) return;
+    const next = !torchActive;
+    const ok = await setCameraTorch(streamRef.current, next);
+    if (ok) setTorchActive(next);
+  }, [torchActive]);
+
   const stopCamera = useCallback(() => {
     if (scanTimerRef.current) window.clearTimeout(scanTimerRef.current);
     scanTimerRef.current = undefined;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    setTorchActive(false);
     if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
 
@@ -186,11 +203,17 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
     setMessage("Telefonunuz kamera erişimi sorarsa İzin Ver seçeneğine dokunun.");
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-        audio: false,
-      });
+      const stream = await navigator.mediaDevices.getUserMedia(OPTIMAL_CAMERA_CONSTRAINTS);
       streamRef.current = stream;
+
+      const zCap = getCameraZoomCapability(stream);
+      setZoomCap(zCap);
+      setCurrentZoom(zCap.current);
+
+      const tCap = getCameraTorchCapability(stream);
+      setHasTorch(tCap.supported);
+      setTorchActive(tCap.active);
+
       const video = videoRef.current;
       if (!video) return;
       video.srcObject = stream;
@@ -201,26 +224,15 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
       const scan = async () => {
         if (!streamRef.current || handledTokenRef.current) return;
         const canvas = canvasRef.current;
-        if (canvas && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-          const maxWidth = 960;
-          const scale = Math.min(1, maxWidth / video.videoWidth);
-          canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
-          canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
-          const context = canvas.getContext("2d", { willReadFrequently: true });
-          if (context) {
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const frame = context.getImageData(0, 0, canvas.width, canvas.height);
-            const result = jsQR(frame.data, frame.width, frame.height, {
-              inversionAttempts: "attemptBoth",
-            });
-            const token = result ? tokenFromQrValue(result.data) : "";
-            if (token) {
-              await submitToken(token);
-              return;
-            }
+        const v = videoRef.current;
+        if (canvas && v && v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+          const token = await decodeQrFromVideo(v, canvas);
+          if (token) {
+            await submitToken(token);
+            return;
           }
         }
-        scanTimerRef.current = window.setTimeout(() => void scan(), 180);
+        scanTimerRef.current = window.setTimeout(() => void scan(), 75);
       };
       void scan();
     } catch (caught) {
@@ -276,7 +288,22 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
         <Link href="/" className="inline-flex items-center gap-2 rounded-lg px-2 py-2 font-label-sm text-label-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white">
           <MaterialIcon name="arrow_back" /> Çık
         </Link>
-        <p className="flex items-center gap-2 font-label-sm text-label-sm text-white/80"><MaterialIcon name="school" /> EduAttend</p>
+        <div className="flex items-center gap-3">
+          {hasTorch && state === "scanning" && (
+            <button
+              type="button"
+              onClick={() => void handleTorchToggle()}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur transition shadow-sm",
+                torchActive ? "bg-amber-400 text-neutral-900" : "bg-black/50 text-white/90 hover:bg-black/70"
+              )}
+            >
+              <MaterialIcon name={torchActive ? "flashlight_on" : "flashlight_off"} className="text-sm" />
+              <span>{torchActive ? "Flaş Açık" : "Flaş"}</span>
+            </button>
+          )}
+          <p className="flex items-center gap-2 font-label-sm text-label-sm text-white/80"><MaterialIcon name="school" /> EduAttend</p>
+        </div>
       </header>
 
       <div className="relative flex flex-1 items-center justify-center overflow-hidden py-12">
@@ -285,12 +312,38 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
             <video ref={videoRef} playsInline muted className="absolute inset-0 size-full object-cover" aria-label="QR kamera görüntüsü" />
             <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
             <div className="absolute inset-0 bg-primary/25" aria-hidden="true" />
-            <div className="animate-viewfinder-pulse relative size-64 rounded-xl border-2 border-white/80" aria-hidden="true">
-              <span className="absolute -left-0.5 -top-0.5 size-10 border-l-4 border-t-4 border-white" />
-              <span className="absolute -right-0.5 -top-0.5 size-10 border-r-4 border-t-4 border-white" />
-              <span className="absolute -bottom-0.5 -left-0.5 size-10 border-b-4 border-l-4 border-white" />
-              <span className="absolute -bottom-0.5 -right-0.5 size-10 border-b-4 border-r-4 border-white" />
+            <div className="animate-viewfinder-pulse relative size-64 sm:size-72 rounded-2xl border-2 border-white/80 shadow-2xl" aria-hidden="true">
+              <span className="absolute -left-0.5 -top-0.5 size-10 border-l-4 border-t-4 border-emerald-400 rounded-tl-lg" />
+              <span className="absolute -right-0.5 -top-0.5 size-10 border-r-4 border-t-4 border-emerald-400 rounded-tr-lg" />
+              <span className="absolute -bottom-0.5 -left-0.5 size-10 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg" />
+              <span className="absolute -bottom-0.5 -right-0.5 size-10 border-b-4 border-r-4 border-emerald-400 rounded-br-lg" />
             </div>
+
+            {/* Zoom Controls for distant/back-row scanning */}
+            {zoomCap.supported && (
+              <div className="absolute bottom-4 inset-x-0 flex flex-col items-center gap-2 z-20">
+                <div className="flex items-center gap-2 rounded-full bg-black/60 p-1.5 backdrop-blur-md border border-white/10">
+                  {[1, 2, 3].filter((lvl) => lvl <= zoomCap.max).map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => void handleZoomChange(lvl)}
+                      className={cn(
+                        "size-9 rounded-full font-bold text-xs shadow transition active:scale-95 flex items-center justify-center",
+                        Math.abs(currentZoom - lvl) < 0.2
+                          ? "bg-white text-neutral-900 shadow-md ring-2 ring-emerald-400"
+                          : "text-white/80 hover:text-white hover:bg-white/10"
+                      )}
+                    >
+                      {lvl}x
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[11px] font-medium text-white/80 bg-black/50 px-2.5 py-0.5 rounded-full backdrop-blur">
+                  En arka sıralar için 2x veya 3x yakınlaştırın
+                </span>
+              </div>
+            )}
           </>
         ) : (
           <div

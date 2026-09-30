@@ -1,28 +1,27 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 
-import { auth } from "@/auth";
 import { TeacherLayout } from "@/components/layout/teacher-layout";
 import { Card } from "@/components/ui/card";
 import { MaterialIcon } from "@/components/ui/icons";
 import { ManualAttendanceForm } from "@/components/teacher/manual-attendance-form";
 import { getManualAttendanceRoster } from "@/lib/attendance/session-service";
+import { requireTeacher } from "@/lib/auth/authorization";
+import { todayInIstanbul } from "@/lib/attendance/slot";
 
 export default async function ManualAttendancePage({
   params,
 }: {
   params: Promise<{ courseId: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/giris");
-  if (session.user.role !== "TEACHER") redirect("/ogrenci");
+  const teacher = await requireTeacher();
 
   const { courseId } = await params;
-  const { course, slot, enrollments } = await getManualAttendanceRoster(session.user.id, courseId);
+  const { course, slot, enrollments, initialRecords, initialSession } =
+    await getManualAttendanceRoster(teacher.id, courseId);
 
   return (
     <TeacherLayout
-      userName={session.user.name ?? session.user.email ?? "Öğretmen"}
+      userName={teacher.name ?? teacher.email}
       pageTitle="Manuel yoklama"
     >
       <div className="animate-fade-in-up mx-auto max-w-5xl px-6 py-stack-lg sm:px-margin-page">
@@ -35,7 +34,9 @@ export default async function ManualAttendancePage({
             <h1 className="mt-1 font-h1 text-h1 text-on-surface">Manuel yoklama</h1>
             <p className="mt-2 font-body-md text-body-md text-on-surface-variant">{course.name}</p>
           </div>
-          <p className="mt-3 rounded-full bg-primary-fixed px-3 py-1.5 font-label-sm text-label-sm text-on-primary-fixed-variant sm:mt-0">Hafta ve oturumu aşağıdan seçin</p>
+          <p className="mt-3 rounded-full bg-primary-fixed px-3 py-1.5 font-label-sm text-label-sm text-on-primary-fixed-variant sm:mt-0">
+            {course.attendanceMode === "PREPARATORY" ? "Tarih ve ders sırasını aşağıdan seçin" : "Hafta ve oturumu aşağıdan seçin"}
+          </p>
         </div>
         <Card className="overflow-hidden">
           <ManualAttendanceForm
@@ -43,8 +44,14 @@ export default async function ManualAttendancePage({
             enrollments={enrollments}
             totalWeeks={course.totalWeeks}
             weeklySessionCount={course.weeklySessionCount}
-            initialWeekNumber={Math.min(slot.weekNumber, course.totalWeeks)}
-            initialSessionIndex={slot.sessionIndexInWeek}
+            attendanceMode={course.attendanceMode}
+            preparatoryDayPlans={course.preparatoryDayPlans}
+            initialWeekNumber={"weekNumber" in slot ? Math.min(slot.weekNumber ?? 1, course.totalWeeks) : 1}
+            initialSessionIndex={"sessionIndexInWeek" in slot ? slot.sessionIndexInWeek ?? 1 : 1}
+            initialSessionDate={"sessionDate" in slot ? slot.sessionDate ?? todayInIstanbul() : todayInIstanbul()}
+            initialLessonPeriod={"lessonPeriod" in slot ? slot.lessonPeriod ?? 1 : 1}
+            initialRecords={initialRecords}
+            initialSession={initialSession}
           />
         </Card>
       </div>

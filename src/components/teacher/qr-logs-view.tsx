@@ -32,7 +32,15 @@ export type LogItem = {
   userAgent: string | null;
   scannedAt: string | Date;
   course?: { id: string; name: string; code: string } | null;
-  session?: { id: string; weekNumber: number; sessionIndexInWeek: number; status: string } | null;
+  session?: {
+    id: string;
+    slotType: "WEEKLY" | "CALENDAR_PERIOD";
+    weekNumber: number | null;
+    sessionIndexInWeek: number | null;
+    sessionDate: string | Date | null;
+    lessonPeriod: number | null;
+    status: string;
+  } | null;
   user?: { id: string; name: string | null; email: string; image: string | null; schoolNumber: string | null } | null;
 };
 
@@ -93,6 +101,8 @@ function getResultBadge(result: QrScanResult) {
       return { variant: "success" as const, label: "Başarılı", icon: "check_circle" };
     case "DUPLICATE_SCAN":
       return { variant: "warning" as const, label: "Tekrar Okutma", icon: "replay" };
+    case "DEVICE_ALREADY_USED":
+      return { variant: "critical" as const, label: "Cihaz Tekrarı", icon: "devices" };
     case "OUT_OF_RADIUS":
       return { variant: "error" as const, label: "Konum Dışı", icon: "location_off" };
     case "OUT_OF_NETWORK":
@@ -804,7 +814,9 @@ export function QrLogsView({
                     <span className="text-neutral-500">Oturum Bilgisi:</span>
                     <span className="text-neutral-700">
                       {selectedLog.session
-                        ? `Hafta ${selectedLog.session.weekNumber} · Oturum ${selectedLog.session.sessionIndexInWeek}`
+                        ? selectedLog.session.slotType === "CALENDAR_PERIOD"
+                          ? `${selectedLog.session.lessonPeriod}. ders`
+                          : `Hafta ${selectedLog.session.weekNumber} · Oturum ${selectedLog.session.sessionIndexInWeek}`
                         : "-"}
                     </span>
                   </div>

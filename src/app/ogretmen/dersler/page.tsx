@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
-import { auth } from "@/auth";
 import { TeacherLayout } from "@/components/layout/teacher-layout";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -9,40 +7,17 @@ import { MaterialIcon } from "@/components/ui/icons";
 import { CourseCreateModal } from "@/components/teacher/course-create-modal";
 import { CourseListItem } from "@/components/teacher/course-list-item";
 import { listTeacherCourses } from "@/lib/courses/service";
-import { prisma } from "@/lib/db";
+import { requireTeacher } from "@/lib/auth/authorization";
 
 type PageProps = {
   searchParams?: Promise<{ search?: string }>;
 };
 
 export default async function TeacherCoursesPage({ searchParams }: PageProps) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/giris");
-  if (session.user.role !== "TEACHER") redirect("/ogrenci");
-
   const [teacher, params] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { id: true, name: true, email: true, role: true, image: true },
-    }),
+    requireTeacher(),
     searchParams,
   ]);
-
-  if (!teacher || teacher.role !== "TEACHER") {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-background px-4">
-        <div className="max-w-md text-center">
-          <h1 className="font-h2 text-h2 text-on-surface">Öğretmen hesabı bulunamadı</h1>
-          <p className="mt-3 font-body-md text-body-md leading-6 text-on-surface-variant">
-            Giriş yaptığınız hesap henüz öğretmen rolüyle yetkilendirilmemiş. Sistem yöneticinizle iletişime geçin.
-          </p>
-          <Link href="/" className="mt-6 inline-block font-label-sm text-label-sm text-secondary">
-            Ana sayfaya dön
-          </Link>
-        </div>
-      </main>
-    );
-  }
 
   const allCourses = await listTeacherCourses(teacher.id);
   const search = params?.search?.trim().toLocaleLowerCase("tr-TR");

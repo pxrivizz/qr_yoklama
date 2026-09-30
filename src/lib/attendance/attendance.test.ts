@@ -4,6 +4,7 @@ import { haversineDistanceMeters, isWithinAllowedRadius } from "./geo";
 import { isIpAllowed } from "./ip";
 import { issueQrToken, verifyQrToken } from "./qr-token";
 import { calculateNextSessionSlot, calculatePlannedSessionCount } from "./schedule";
+import { calculateAbsenceLimitStatus } from "./absence-limit";
 
 const QR_SECRET = "test-icin-en-az-otuz-iki-karakter-qr-secret";
 
@@ -127,50 +128,37 @@ describe("QR kod metni ayrıştırma", () => {
 });
 
 describe("devamsızlık limiti durum kontrolleri", () => {
-  function computeLimitStatus(
-    isMandatory: boolean,
-    limit: number | null,
-    totalAbsenceCount: number,
-  ) {
-    const hasLimit = isMandatory && limit !== null && limit > 0;
-    const isFailed = hasLimit && totalAbsenceCount > limit;
-    const isAtLimit = hasLimit && totalAbsenceCount === limit;
-    const isNearLimit = hasLimit && totalAbsenceCount === limit - 1;
-    const remainingAllowance = hasLimit ? Math.max(0, limit - totalAbsenceCount) : null;
-    return { hasLimit, isFailed, isAtLimit, isNearLimit, remainingAllowance };
-  }
-
   it("zorunlu olmayan veya limitsiz derslerde devamsızlık kuralı işletilmez", () => {
-    const res = computeLimitStatus(false, 4, 10);
+    const res = calculateAbsenceLimitStatus(10, 4, false);
     expect(res.hasLimit).toBe(false);
     expect(res.isFailed).toBe(false);
     expect(res.isAtLimit).toBe(false);
   });
 
   it("sınırı aşan devamsızlıkta isFailed=true döner", () => {
-    const res = computeLimitStatus(true, 4, 5);
+    const res = calculateAbsenceLimitStatus(5, 4, true);
     expect(res.hasLimit).toBe(true);
     expect(res.isFailed).toBe(true);
     expect(res.remainingAllowance).toBe(0);
   });
 
-  it("tam sınırda olan devamsızlıkta isAtLimit=true döner", () => {
-    const res = computeLimitStatus(true, 4, 4);
+  it("tam sınırda olan devamsızlıkta öğrenci kalır", () => {
+    const res = calculateAbsenceLimitStatus(4, 4, true);
     expect(res.hasLimit).toBe(true);
     expect(res.isAtLimit).toBe(true);
-    expect(res.isFailed).toBe(false);
+    expect(res.isFailed).toBe(true);
     expect(res.remainingAllowance).toBe(0);
   });
 
   it("sınıra 1 kala isNearLimit=true döner", () => {
-    const res = computeLimitStatus(true, 4, 3);
+    const res = calculateAbsenceLimitStatus(3, 4, true);
     expect(res.hasLimit).toBe(true);
     expect(res.isNearLimit).toBe(true);
     expect(res.remainingAllowance).toBe(1);
   });
 
   it("güvenli bölgede kalan hak doğru hesaplanır", () => {
-    const res = computeLimitStatus(true, 4, 1);
+    const res = calculateAbsenceLimitStatus(1, 4, true);
     expect(res.hasLimit).toBe(true);
     expect(res.isFailed).toBe(false);
     expect(res.isAtLimit).toBe(false);
@@ -187,4 +175,3 @@ describe("Türkçe isim normalizasyonu", () => {
     expect(normalizePersonName("ŞÜKRÜ ÇAĞLAYAN")).toBe("sukru caglayan");
   });
 });
-

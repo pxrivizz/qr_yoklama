@@ -1,8 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { redirect } from "next/navigation";
 
-import { auth } from "@/auth";
 import { TeacherLayout } from "@/components/layout/teacher-layout";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
@@ -13,6 +11,7 @@ import { Table, TableBody, TableHead, TableRow, Td, Th } from "@/components/ui/t
 import type { AttendanceStatus } from "@/generated/prisma/enums";
 import { getCourseAttendanceReport } from "@/lib/attendance/report-service";
 import { cn } from "@/lib/cn";
+import { requireTeacher } from "@/lib/auth/authorization";
 
 const statusLabels: Record<AttendanceStatus, string> = {
   PRESENT: "Var",
@@ -36,21 +35,32 @@ function sessionDate(date: Date) {
   return new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" }).format(date);
 }
 
+function sessionTitle(session: {
+  slotType: "WEEKLY" | "CALENDAR_PERIOD";
+  weekNumber: number | null;
+  sessionIndexInWeek: number | null;
+  sessionDate: Date | null;
+  lessonPeriod: number | null;
+}) {
+  if (session.slotType === "CALENDAR_PERIOD" && session.sessionDate && session.lessonPeriod) {
+    return `${sessionDate(session.sessionDate)} · ${session.lessonPeriod}. Ders`;
+  }
+  return `H${session.weekNumber} · O${session.sessionIndexInWeek}`;
+}
+
 export default async function AttendanceReportPage({
   params,
 }: {
   params: Promise<{ courseId: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/giris");
-  if (session.user.role !== "TEACHER") redirect("/ogrenci");
+  const teacher = await requireTeacher();
 
   const { courseId } = await params;
-  const report = await getCourseAttendanceReport(session.user.id, courseId);
+  const report = await getCourseAttendanceReport(teacher.id, courseId);
 
   return (
     <TeacherLayout
-      userName={session.user.name ?? session.user.email ?? "Öğretmen"}
+      userName={teacher.name ?? teacher.email}
       pageTitle="Yoklama raporu"
     >
       <div className="animate-fade-in-up mx-auto max-w-container-max-width px-6 py-stack-lg sm:px-margin-page">
@@ -120,7 +130,7 @@ export default async function AttendanceReportPage({
               </div>
               {report.course.mandatoryAlertLimit !== null && (
                 <Badge variant="warning" className="mt-3 sm:mt-0">
-                  Uyarı eşiği: {report.course.mandatoryAlertLimit} yoklama
+                  Devamsızlık hakkı: {report.course.mandatoryAlertLimit} yoklama
                 </Badge>
               )}
             </div>
@@ -129,7 +139,7 @@ export default async function AttendanceReportPage({
                 <Th className="sticky left-0 z-10 min-w-56 bg-surface-container-low">Öğrenci</Th>
                 {report.sessions.map((attendanceSession) => (
                   <Th key={attendanceSession.id} className="min-w-24 text-center normal-case tracking-normal">
-                    <span className="block text-on-surface">H{attendanceSession.weekNumber} · O{attendanceSession.sessionIndexInWeek}</span>
+                    <span className="block text-on-surface">{sessionTitle(attendanceSession)}</span>
                     <span className="mt-0.5 block font-normal">{sessionDate(attendanceSession.startedAt)}</span>
                   </Th>
                 ))}

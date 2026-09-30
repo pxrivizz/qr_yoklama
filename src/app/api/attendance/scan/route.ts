@@ -7,6 +7,10 @@ import { getRequestContext } from "@/lib/http/request-context";
 import type { QrScanResult } from "@/generated/prisma/client";
 import { readJsonBody } from "@/lib/http/request-body";
 import { enforceRateLimit } from "@/lib/http/rate-limit";
+import {
+  attachAttendanceDeviceCookie,
+  resolveAttendanceDeviceIdentity,
+} from "@/lib/attendance/device-identity";
 import { z } from "zod";
 
 const inspectQuerySchema = z.object({
@@ -66,13 +70,24 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  let deviceIdentity: ReturnType<typeof resolveAttendanceDeviceIdentity> | undefined;
+  let response: Response;
+
   try {
     const student = await requireStudent();
+    deviceIdentity = resolveAttendanceDeviceIdentity(request);
     enforceRateLimit(`attendance-record:${student.id}`, { limit: 20, windowMs: 60_000 });
     const input = attendanceScanSchema.parse(await readJsonBody(request));
-    const data = await recordAttendanceScan(student.id, input, getRequestContext(request));
-    return Response.json({ data }, { status: 201 });
+    const data = await recordAttendanceScan(
+      student.id,
+      input,
+      getRequestContext(request),
+      deviceIdentity.id,
+    );
+    response = Response.json({ data }, { status: 201 });
   } catch (error) {
-    return apiErrorResponse(error);
+    response = apiErrorResponse(error);
   }
+
+  return deviceIdentity ? attachAttendanceDeviceCookie(response, deviceIdentity) : response;
 }

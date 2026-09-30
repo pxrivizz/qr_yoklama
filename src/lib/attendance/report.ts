@@ -2,8 +2,11 @@ import type { AttendanceStatus } from "@/generated/prisma/enums";
 
 type ReportSession = {
   id: string;
-  weekNumber: number;
-  sessionIndexInWeek: number;
+  slotType: "WEEKLY" | "CALENDAR_PERIOD";
+  weekNumber: number | null;
+  sessionIndexInWeek: number | null;
+  sessionDate: Date | null;
+  lessonPeriod: number | null;
   startedAt: Date;
   createdBy: "SYSTEM_QR" | "TEACHER_MANUAL";
   records: Array<{

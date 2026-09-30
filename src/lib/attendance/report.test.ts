@@ -23,8 +23,11 @@ describe("yoklama raporu", () => {
       [
         {
           id: "session-1",
+          slotType: "WEEKLY",
           weekNumber: 1,
           sessionIndexInWeek: 1,
+          sessionDate: null,
+          lessonPeriod: null,
           startedAt: new Date("2026-08-01T08:00:00Z"),
           createdBy: "SYSTEM_QR",
           records: [{ enrollmentId: "student-1", status: "PRESENT" }],
@@ -43,16 +46,22 @@ describe("yoklama raporu", () => {
       [
         {
           id: "session-1",
+          slotType: "WEEKLY",
           weekNumber: 1,
           sessionIndexInWeek: 1,
+          sessionDate: null,
+          lessonPeriod: null,
           startedAt: new Date("2026-08-01T08:00:00Z"),
           createdBy: "TEACHER_MANUAL",
           records: [{ enrollmentId: "student-1", status: "PRESENT" }],
         },
         {
           id: "session-2",
+          slotType: "WEEKLY",
           weekNumber: 1,
           sessionIndexInWeek: 2,
+          sessionDate: null,
+          lessonPeriod: null,
           startedAt: new Date("2026-08-02T08:00:00Z"),
           createdBy: "SYSTEM_QR",
           records: [],

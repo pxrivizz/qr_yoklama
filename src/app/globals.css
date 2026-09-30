@@ -601,3 +601,112 @@ dialog.modal-is-closing>div {
     transform: none;
   }
 }
+
+@keyframes signin-overlay-enter {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(10px);
+  }
+}
+
+@keyframes signin-mark-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes signin-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes signin-glow {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.88);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.06);
+  }
+}
+
+.signin-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1.25rem;
+  overflow: hidden;
+  background: rgb(250 250 250 / 0.94);
+  animation: signin-overlay-enter 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.signin-transition__glow {
+  position: absolute;
+  width: min(28rem, 90vw);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgb(229 229 229 / 0.75) 0%, transparent 68%);
+  animation: signin-glow 1.8s ease-in-out infinite;
+}
+
+.signin-transition__mark {
+  position: relative;
+  display: grid;
+  width: 5rem;
+  height: 5rem;
+  place-items: center;
+  animation: signin-mark-enter 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.signin-transition__logo {
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  place-items: center;
+  border-radius: 1rem;
+  background: #171717;
+  color: white;
+  box-shadow: 0 12px 32px rgb(23 23 23 / 0.18);
+}
+
+.signin-transition__orbit {
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgb(212 212 212 / 0.72);
+  border-top-color: #171717;
+  border-radius: 999px;
+  animation: signin-orbit 900ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signin-transition,
+  .signin-transition__mark {
+    animation-duration: 1ms;
+  }
+
+  .signin-transition__glow,
+  .signin-transition__orbit {
+    animation: none;
+  }
+
+  .signin-transition__orbit {
+    border-color: #a3a3a3;
+  }
+}

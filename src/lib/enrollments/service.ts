@@ -3,6 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { ApiError } from "@/lib/http/api-error";
 import type { RequestContext } from "@/lib/http/request-context";
+import { calculateAbsenceLimitStatus } from "@/lib/attendance/absence-limit";
 
 import type { ParsedEnrollmentRow } from "./excel-parser";
 import { normalizePersonName } from "@/lib/students/name";
@@ -281,10 +282,11 @@ export async function getCourseStudents(
         ? Math.round((attendedCount / totalClosedSessions) * 100)
         : 100;
     const limit = course.mandatoryAlertLimit;
-    const hasLimit = enrollment.isMandatory && limit !== null && limit > 0;
-    const isFailed = hasLimit && absentCount > limit;
-    const isAtLimit = hasLimit && absentCount === limit;
-    const isNearLimit = hasLimit && absentCount === limit - 1;
+    const { isFailed, isAtLimit, isNearLimit } = calculateAbsenceLimitStatus(
+      absentCount,
+      limit,
+      enrollment.isMandatory,
+    );
 
     return {
       id: enrollment.id,

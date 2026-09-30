@@ -7,7 +7,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' blob: data: https:",
-  "connect-src 'self'",
+  "connect-src 'self' https://api64.ipify.org",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -15,6 +15,7 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   allowedDevOrigins: [
     "localhost",
     "localhost:3000",

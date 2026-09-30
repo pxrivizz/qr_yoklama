@@ -16,12 +16,12 @@ type NavItem = {
 
 const mainNavItems: NavItem[] = [
   { label: "Genel Bakış", href: "/ogretmen", icon: "dashboard" },
-  { label: "Derslerim", href: "/ogretmen/dersler", icon: "school", activePrefix: "/ogretmen/ders" },
-  { label: "QR Okutma Logları", href: "/ogretmen/loglar", icon: "receipt_long" },
+  { label: "Derslerim", href: "/ogretmen/dersler", icon: "menu_book", activePrefix: "/ogretmen/ders" },
+  { label: "Sistem Logları", href: "/ogretmen/loglar", icon: "receipt_long" },
 ];
 
 const secondaryNavItems: NavItem[] = [
-  { label: "Profilim", href: "/ogretmen", icon: "person" },
+  { label: "Hesap Ayarları", href: "/ogretmen/hesap", icon: "manage_accounts" },
 ];
 
 function isActive(pathname: string, item: NavItem) {
@@ -34,9 +34,10 @@ type SideNavProps = {
   onSignOut: () => void;
   open?: boolean;
   onClose?: () => void;
+  isImpersonating?: boolean;
 };
 
-export function SideNav({ userName, onSignOut, open = false, onClose }: SideNavProps) {
+export function SideNav({ userName, onSignOut, open = false, onClose, isImpersonating = false }: SideNavProps) {
   const pathname = usePathname();
 
   const openRef = useRef(open);
@@ -117,7 +118,7 @@ export function SideNav({ userName, onSignOut, open = false, onClose }: SideNavP
 
       <div className="border-t border-white/[0.08] px-3 py-4 space-y-3">
         <div className="space-y-1">
-          {secondaryNavItems.map((item) => (
+          {!isImpersonating && secondaryNavItems.map((item) => (
             <Link
               key={item.label}
               href={item.href}

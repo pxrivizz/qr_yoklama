@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/ui/icons";
 import { StatusMessage } from "@/components/ui/status-message";
+import { importedCourseName } from "@/lib/courses/imported-course-name";
 
 type CourseMetadata = {
   faculty?: string;
@@ -147,7 +148,9 @@ export function CourseExcelImport({
           <div className="grid gap-3 rounded-lg border border-outline-variant bg-surface-container-lowest p-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <p className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Ders</p>
-              <p className="mt-1 font-medium text-on-surface">{preview.metadata?.courseName ?? "Excel’de bulunamadı"}</p>
+              <p className="mt-1 font-medium text-on-surface">
+                {importedCourseName(preview.metadata?.courseName, preview.metadata?.branchCode) ?? "Excel’de bulunamadı"}
+              </p>
             </div>
             <div>
               <p className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Kod / Şube</p>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { SideNav } from "@/components/layout/side-nav";
 import { TopAppBar } from "@/components/layout/top-app-bar";
+import { ImpersonationBanner } from "@/components/admin/impersonation-banner";
 
 type TeacherShellProps = {
   userName: string;
@@ -12,6 +13,7 @@ type TeacherShellProps = {
   searchPlaceholder?: string;
   children: React.ReactNode;
   onSignOut: () => void;
+  isImpersonating?: boolean;
 };
 
 export function TeacherShell({
@@ -22,6 +24,7 @@ export function TeacherShell({
   searchPlaceholder,
   children,
   onSignOut,
+  isImpersonating = false,
 }: TeacherShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -32,6 +35,7 @@ export function TeacherShell({
         onSignOut={onSignOut}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        isImpersonating={isImpersonating}
       />
       <TopAppBar
         title={pageTitle}
@@ -40,7 +44,8 @@ export function TeacherShell({
         userImage={userImage}
         onMenuToggle={() => setSidebarOpen(true)}
       />
-      <main className="pt-16 lg:ml-sidebar-width">{children}</main>
+      {isImpersonating && <ImpersonationBanner />}
+      <main className={isImpersonating ? "pt-28 lg:ml-sidebar-width" : "pt-16 lg:ml-sidebar-width"}>{children}</main>
     </div>
   );
 }
