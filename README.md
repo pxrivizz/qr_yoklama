@@ -1,6 +1,27 @@
-# Okul Yoklama
+# MSKÜ QR Yoklama Sistemi
 
-QR kod, okul ağı ve konum doğrulaması kullanan web tabanlı yoklama sistemi.
+Muğla Sıtkı Koçman Üniversitesi için geliştirilen; QR kod, okul ağı ve konum
+doğrulaması kullanan web tabanlı ders yoklama sistemi.
+
+## Ekran görüntüleri
+
+### Ana sayfa
+
+![MSKÜ Yoklama ana sayfası](docs/screenshots/ana-sayfa.png)
+
+### Rol tabanlı giriş portalı
+
+![Öğrenci, akademik personel ve admin giriş portalı](docs/screenshots/giris.png)
+
+## Öne çıkan özellikler
+
+- Öğretmen tarafından başlatılan, 30 saniyede bir yenilenen güvenli QR yoklama
+- Öğrenci konumu, okul ağı ve cihaz kimliği kontrolleri
+- Öğrenci, akademik personel ve yönetici için ayrı giriş akışları
+- Ders, öğrenci listesi, manuel yoklama ve devamsızlık yönetimi
+- `.xls` / `.xlsx` öğrenci listesi içe aktarma ve yoklama raporu dışa aktarma
+- Anlık katılım takibi, QR tarama kayıtları ve denetim günlüğü
+- Mobil öncelikli öğrenci deneyimi
 
 ## Mevcut durum
 
