@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { SideNav } from "@/components/layout/side-nav";
 import { TopAppBar } from "@/components/layout/top-app-bar";
 import { ImpersonationBanner } from "@/components/admin/impersonation-banner";
@@ -27,6 +27,8 @@ export function TeacherShell({
   isImpersonating = false,
 }: TeacherShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const openSidebar = useCallback(() => setSidebarOpen(true), []);
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -34,7 +36,7 @@ export function TeacherShell({
         userName={userName}
         onSignOut={onSignOut}
         open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
+        onClose={closeSidebar}
         isImpersonating={isImpersonating}
       />
       <TopAppBar
@@ -42,7 +44,7 @@ export function TeacherShell({
         showSearch={showSearch}
         searchPlaceholder={searchPlaceholder}
         userImage={userImage}
-        onMenuToggle={() => setSidebarOpen(true)}
+        onMenuToggle={openSidebar}
       />
       {isImpersonating && <ImpersonationBanner />}
       <main className={isImpersonating ? "pt-28 lg:ml-sidebar-width" : "pt-16 lg:ml-sidebar-width"}>{children}</main>
