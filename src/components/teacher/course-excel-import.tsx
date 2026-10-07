@@ -105,7 +105,7 @@ export function CourseExcelImport({
             Üniversite yoklama listesini yükleyin. Ders adı ve kodu bulunursa aşağıdaki forma otomatik aktarılır; tüm alanları değiştirebilirsiniz.
           </p>
           <p className="mt-1.5 font-label-sm text-label-sm text-on-surface-variant">
-            Desteklenen kolonlar: <span className="font-medium text-on-surface">Adı Soyadı (veya Ad + Soyad), Öğrenci No, Alış/Ö.Not (veya Zorunlu)</span>
+            Desteklenen kolonlar: <span className="font-medium text-on-surface">Adı Soyadı (veya Ad + Soyad), Öğrenci No, Alış/Ö.Not (veya Zorunlu)</span>. Hazırlık listelerinde Adı, Soyadı ve Öğrenci No yeterlidir.
           </p>
         </div>
         <Button type="button" variant="secondary" className="shrink-0 gap-2" onClick={() => inputRef.current?.click()}>

@@ -5,8 +5,8 @@ import { BugReportWidget } from "@/components/bug-reports/bug-report-widget";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Okul Yoklama",
-  description: "QR kod tabanlı güvenli okul yoklama sistemi",
+  title: "DersDevam",
+  description: "QR kod tabanlı güvenli ders devam takip sistemi",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

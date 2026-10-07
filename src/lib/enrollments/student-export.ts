@@ -257,7 +257,7 @@ export function buildEnrollmentsWorkbook(
   workbook.Props = {
     Title: `${data.course.code} Öğrenci Listesi`,
     Subject: data.course.name,
-    Author: "EduAttend",
+    Author: "DersDevam",
     CreatedDate: generatedAt,
   };
   return workbook;

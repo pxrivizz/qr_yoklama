@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
+import { BrandMark } from "@/components/brand/brand-mark";
 import { MaterialIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 
@@ -62,12 +63,10 @@ export function SideNav({ userName, onSignOut, open = false, onClose, isImperson
     <div className="flex h-full flex-col bg-[#0b0f17] border-r border-white/[0.08] text-white shadow-2xl lg:shadow-none">
       <div className="border-b border-white/[0.08] px-6 py-6">
         <Link href="/ogretmen" className="flex items-center gap-3 group">
-          <span className="grid size-10 place-items-center rounded-xl bg-white/10 text-white border border-white/10 shadow-inner transition-transform duration-200 group-hover:scale-105">
-            <MaterialIcon name="school" className="text-xl" />
-          </span>
+          <BrandMark className="size-10 shadow-sm transition-transform duration-200 group-hover:scale-105" priority />
           <div className="min-w-0 flex-1">
             <h1 className="text-base font-semibold tracking-tight text-white flex items-center gap-2">
-              MSKÜ Yoklama
+              DersDevam
             </h1>
             <p className="mt-0.5 text-xs text-neutral-400 truncate">
               Öğretim Portalı

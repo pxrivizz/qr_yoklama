@@ -3,6 +3,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 
 import { auth, signOut } from "@/auth";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { StudentProfileSection } from "@/components/student/student-profile-section";
 import { StudentNotifications } from "@/components/student/student-notifications";
 import { ActiveAttendanceBanner } from "@/components/student/active-attendance-banner";
@@ -42,10 +43,8 @@ export default async function StudentPage({ searchParams }: StudentPageProps) {
       <header className="border-b border-outline-variant bg-surface-container-lowest/80 backdrop-blur-lg sticky top-0 z-20">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
           <Link href="/ogrenci" className="flex min-w-0 shrink items-center gap-2 font-h3 text-h3 text-primary">
-            <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-white">
-              <MaterialIcon name="school" className="text-xl" />
-            </div>
-            <span className="truncate text-sm font-bold sm:text-base">MSKÜ Yoklama</span>
+            <BrandMark className="size-8" priority />
+            <span className="truncate text-sm font-bold sm:text-base">DersDevam</span>
           </Link>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <StudentNotifications />

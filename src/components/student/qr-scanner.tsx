@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { MaterialIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import { geolocationErrorMessage } from "@/lib/browser/geolocation-error";
@@ -302,7 +303,9 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
               <span>{torchActive ? "Flaş Açık" : "Flaş"}</span>
             </button>
           )}
-          <p className="flex items-center gap-2 font-label-sm text-label-sm text-white/80"><MaterialIcon name="school" /> EduAttend</p>
+          <p className="flex items-center gap-2 font-label-sm text-label-sm text-white/80">
+            <BrandMark className="size-5" /> DersDevam
+          </p>
         </div>
       </header>
 

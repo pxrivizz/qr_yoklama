@@ -1,8 +1,9 @@
 import Link from "next/link";
 
 import { auth, signOut } from "@/auth";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { LoginPortalForm } from "@/components/auth/login-portal-form";
-import { GraduationCapIcon, MaterialIcon } from "@/components/ui/icons";
+import { MaterialIcon } from "@/components/ui/icons";
 import { StatusMessage } from "@/components/ui/status-message";
 
 function getErrorMessage(error?: string | string[]): string | null {
@@ -44,19 +45,15 @@ export default async function SignInPage({
           href="/"
           className="flex items-center gap-2.5 text-xs font-semibold text-neutral-900 transition-opacity hover:opacity-80"
         >
-          <span className="flex size-7 items-center justify-center rounded-lg bg-neutral-900 text-white shadow-xs">
-            <GraduationCapIcon className="size-3.5" />
-          </span>
-          MSKÜ Yoklama
+          <BrandMark className="size-7 shadow-xs" priority />
+          DersDevam
         </Link>
       </header>
 
       <div className="mx-auto my-auto w-full max-w-md py-6">
         <div className="rounded-2xl border border-neutral-200/90 bg-white p-6 sm:p-8 shadow-sm">
           <div className="text-center mb-6">
-            <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-sm">
-              <GraduationCapIcon className="size-6" />
-            </span>
+            <BrandMark className="mx-auto size-12 shadow-sm" priority />
             <h1 className="mt-4 text-2xl font-bold tracking-tight text-neutral-900">
               Giriş Portalı
             </h1>
@@ -125,7 +122,7 @@ export default async function SignInPage({
 
       <footer className="mx-auto w-full max-w-md text-center">
         <p className="text-xs text-neutral-400">
-          MSKÜ · Ders Yoklama Sistemi
+          DersDevam · Ders Yoklama Sistemi
         </p>
       </footer>
     </main>

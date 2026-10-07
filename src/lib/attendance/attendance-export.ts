@@ -265,7 +265,7 @@ export function buildAttendanceWorkbook(
   workbook.Props = {
     Title: `${report.course.code} Yoklama Raporu`,
     Subject: report.course.name,
-    Author: "EduAttend",
+    Author: "DersDevam",
     CreatedDate: generatedAt,
   };
   return workbook;

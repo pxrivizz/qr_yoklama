@@ -1,4 +1,4 @@
-# MSKÜ QR Yoklama Sistemi
+# DersDevam
 
 Muğla Sıtkı Koçman Üniversitesi için geliştirilen; QR kod, okul ağı ve konum
 doğrulaması kullanan web tabanlı ders yoklama sistemi.
@@ -7,7 +7,7 @@ doğrulaması kullanan web tabanlı ders yoklama sistemi.
 
 ### Ana sayfa
 
-![MSKÜ Yoklama ana sayfası](docs/screenshots/ana-sayfa.png)
+![DersDevam ana sayfası](docs/screenshots/ana-sayfa.png)
 
 ### Rol tabanlı giriş portalı
 

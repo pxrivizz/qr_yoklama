@@ -94,7 +94,7 @@ export function EnrollmentImport({ courseId }: { courseId: string }) {
   return (
     <div className="grid gap-4">
       <p className="font-body-md text-body-md text-on-surface-variant">
-        Üniversite yoklama raporları doğrudan kullanılabilir. Kolonlar: <span className="font-medium text-on-surface">Adı Soyadı (veya Ad + Soyad), Öğrenci No, Alış/Ö.Not (veya Zorunlu)</span>
+        Üniversite yoklama raporları doğrudan kullanılabilir. Kolonlar: <span className="font-medium text-on-surface">Adı Soyadı (veya Ad + Soyad), Öğrenci No, Alış/Ö.Not (veya Zorunlu)</span>. Hazırlık listelerinde Adı, Soyadı ve Öğrenci No yeterlidir.
       </p>
 
       <label className="block font-label-sm text-label-sm text-on-surface">

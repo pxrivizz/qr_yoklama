@@ -1,7 +1,8 @@
 import Link from "next/link";
 
+import { BrandMark } from "@/components/brand/brand-mark";
 import { ButtonLink } from "@/components/ui/button";
-import { GraduationCapIcon, MaterialIcon } from "@/components/ui/icons";
+import { MaterialIcon } from "@/components/ui/icons";
 import { StatusMessage } from "@/components/ui/status-message";
 
 export default async function Home({
@@ -16,10 +17,8 @@ export default async function Home({
       <header className="sticky top-0 z-30 border-b border-neutral-200/80 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <span className="flex items-center gap-2.5 text-base font-semibold text-neutral-900">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-neutral-900 text-white shadow-xs">
-              <GraduationCapIcon className="size-4.5" />
-            </span>
-            MSKÜ Yoklama
+            <BrandMark className="size-8 shadow-xs" priority />
+            DersDevam
           </span>
           <Link
             href="/giris"
@@ -94,7 +93,7 @@ export default async function Home({
       <footer className="border-t border-neutral-200/80 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
           <span className="text-xs text-neutral-500">
-            MSKÜ · Ders Yoklama Sistemi
+            DersDevam · Ders Yoklama Sistemi
           </span>
           <span className="flex items-center gap-1.5 text-xs text-neutral-600">
             <MaterialIcon name="school" className="text-base" /> Muğla Sıtkı Koçman Üniversitesi

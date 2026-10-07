@@ -2,7 +2,8 @@
 
 import { useFormStatus } from "react-dom";
 
-import { GraduationCapIcon, MaterialIcon } from "@/components/ui/icons";
+import { BrandMark } from "@/components/brand/brand-mark";
+import { MaterialIcon } from "@/components/ui/icons";
 
 export function SignInSubmit() {
   const { pending } = useFormStatus();
@@ -30,7 +31,7 @@ export function SignInSubmit() {
           <div className="signin-transition__mark" aria-hidden="true">
             <span className="signin-transition__orbit" />
             <span className="signin-transition__logo">
-              <GraduationCapIcon className="size-6" />
+              <BrandMark className="size-14" />
             </span>
           </div>
           <div className="relative text-center">

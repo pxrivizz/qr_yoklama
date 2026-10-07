@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { GraduationCapIcon, MaterialIcon } from "@/components/ui/icons";
+import { BrandMark } from "@/components/brand/brand-mark";
+import { MaterialIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import { loginWithCredentialsAction, loginWithGoogleAction } from "@/app/giris/actions";
 import { SignInSubmit } from "@/components/auth/sign-in-submit";
@@ -234,7 +235,7 @@ export function LoginPortalForm() {
           <div className="signin-transition__mark" aria-hidden="true">
             <span className="signin-transition__orbit" />
             <span className="signin-transition__logo">
-              <GraduationCapIcon className="size-6" />
+              <BrandMark className="size-14" />
             </span>
           </div>
           <div className="relative text-center">

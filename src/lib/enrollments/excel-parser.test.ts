@@ -153,6 +153,45 @@ describe("Excel öğrenci listesi", () => {
     );
   });
 
+  it("hazırlık sınıfı listesindeki ekli dosya biçimini yalnızca ad, soyad ve öğrenci no ile ayrıştırır", async () => {
+    const bytes = workbookBytes([
+      [
+        "Öğrenci No_02anGS",
+        "Adı_02anGS",
+        "Soyadı_02anGS",
+        "Sınıfı_02anGS",
+        "Alış Tipi_02anGS",
+        "Not_02anGS",
+        "Program_02anGS",
+      ],
+      ["250917051", "BERÇEM", "ÖRSDEMİR", "0", "", "", "İngilizce Mütercim ve Tercümanlık"],
+      ["260709072", "İBRAHİM EREN", "GÜZEL", "0", "", "", "Bilgisayar Mühendisliği"],
+    ]);
+
+    const rows = await parseEnrollmentWorkbook(bytes);
+
+    expect(rows).toMatchObject([
+      {
+        rowNumber: 2,
+        fullName: "BERÇEM ÖRSDEMİR",
+        normalizedName: "bercem orsdemir",
+        schoolNumber: "250917051",
+        isMandatory: true,
+        rawMandatory: "Zorunlu",
+        errors: [],
+      },
+      {
+        rowNumber: 3,
+        fullName: "İBRAHİM EREN GÜZEL",
+        normalizedName: "ibrahim eren guzel",
+        schoolNumber: "260709072",
+        isMandatory: true,
+        rawMandatory: "Zorunlu",
+        errors: [],
+      },
+    ]);
+  });
+
   it.each([
     ["modern .xlsx", "xlsx"],
     ["eski .xls", "biff8"],

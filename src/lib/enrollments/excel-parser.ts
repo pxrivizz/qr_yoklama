@@ -42,6 +42,9 @@ const HEADER_ALIASES = {
     "devamzorunlulugu",
     "devamzorunlumu",
   ],
+  prepClassLevel: ["sinif", "sinifi"],
+  prepIntakeType: ["alistipi"],
+  prepProgram: ["program", "programi"],
 } as const;
 
 const METADATA_ALIASES = {
@@ -79,7 +82,12 @@ type EnrollmentColumns = {
   lastName: number;
   schoolNumber: number;
   mandatory: number;
+  prepClassLevel: number;
+  prepIntakeType: number;
+  prepProgram: number;
 };
+
+type WorkbookProfile = "standard" | "prep";
 
 function workbookFormat(bytes: ArrayBuffer): "xls" | "xlsx" | undefined {
   const signature = new Uint8Array(bytes, 0, Math.min(bytes.byteLength, 8));
@@ -106,7 +114,8 @@ function cellText(value: unknown): string {
 }
 
 function normalizeHeader(value: string): string {
-  return normalizePersonName(value).replace(/\s+/g, "");
+  const withoutExportSuffix = value.replace(/_[\p{L}\p{N}]+$/u, "");
+  return normalizePersonName(withoutExportSuffix).replace(/\s+/g, "");
 }
 
 function findColumn(headers: string[], aliases: readonly string[]): number {
@@ -121,12 +130,31 @@ function columnsFor(row: unknown[]): EnrollmentColumns {
     lastName: findColumn(headers, HEADER_ALIASES.lastName),
     schoolNumber: findColumn(headers, HEADER_ALIASES.schoolNumber),
     mandatory: findColumn(headers, HEADER_ALIASES.mandatory),
+    prepClassLevel: findColumn(headers, HEADER_ALIASES.prepClassLevel),
+    prepIntakeType: findColumn(headers, HEADER_ALIASES.prepIntakeType),
+    prepProgram: findColumn(headers, HEADER_ALIASES.prepProgram),
   };
 }
 
-function isHeaderRow(columns: EnrollmentColumns): boolean {
+function workbookProfile(columns: EnrollmentColumns): WorkbookProfile | undefined {
   const hasName = columns.fullName >= 0 || (columns.firstName >= 0 && columns.lastName >= 0);
-  return hasName && columns.schoolNumber >= 0 && columns.mandatory >= 0;
+  if (hasName && columns.schoolNumber >= 0 && columns.mandatory >= 0) return "standard";
+
+  const prepMarkerCount = [
+    columns.prepClassLevel,
+    columns.prepIntakeType,
+    columns.prepProgram,
+  ].filter((column) => column >= 0).length;
+  if (
+    columns.firstName >= 0 &&
+    columns.lastName >= 0 &&
+    columns.schoolNumber >= 0 &&
+    prepMarkerCount >= 2
+  ) {
+    return "prep";
+  }
+
+  return undefined;
 }
 
 function splitLines(value: unknown): string[] {
@@ -255,13 +283,13 @@ async function parseWorkbook(bytes: ArrayBuffer): Promise<ParsedEnrollmentWorkbo
 
   const headerRowIndex = sheetRows
     .slice(0, HEADER_SCAN_LIMIT)
-    .findIndex((row) => isHeaderRow(columnsFor(row ?? [])));
+    .findIndex((row) => workbookProfile(columnsFor(row ?? [])) !== undefined);
 
   if (headerRowIndex < 0) {
     throw new ApiError(
       422,
       "MISSING_HEADERS",
-      "Gerekli Excel kolonları bulunamadı: Adı Soyadı (veya Ad + Soyad), Öğrenci No, Zorunlu/Alış-Ö.Not.",
+      "Gerekli Excel kolonları bulunamadı: Adı Soyadı (veya Ad + Soyad), Öğrenci No, Zorunlu/Alış-Ö.Not. Hazırlık listelerinde Adı, Soyadı ve Öğrenci No kolonları kullanılabilir.",
     );
   }
 
@@ -278,21 +306,22 @@ async function parseWorkbook(bytes: ArrayBuffer): Promise<ParsedEnrollmentWorkbo
   }
 
   const columns = columnsFor(sheetRows[headerRowIndex] ?? []);
+  const profile = workbookProfile(columns);
   const rows: ParsedEnrollmentRow[] = [];
   for (let rowIndex = headerRowIndex + 1; rowIndex < sheetRows.length; rowIndex += 1) {
     const row = sheetRows[rowIndex] ?? [];
-    if (isHeaderRow(columnsFor(row))) continue;
+    if (workbookProfile(columnsFor(row)) !== undefined) continue;
     const rowNumber = rowIndex + 1;
     const fullName =
       columns.fullName >= 0
         ? cellText(row[columns.fullName])
         : `${cellText(row[columns.firstName])} ${cellText(row[columns.lastName])}`.trim();
     const schoolNumber = cellText(row[columns.schoolNumber]);
-    const mandatoryText = cellText(row[columns.mandatory]);
+    const mandatoryText = profile === "standard" ? cellText(row[columns.mandatory]) : "";
 
     if (!fullName && !schoolNumber && !mandatoryText) continue;
 
-    const mandatory = parseMandatory(mandatoryText);
+    const mandatory = profile === "prep" ? { value: true } : parseMandatory(mandatoryText);
     const errors = validateName(fullName);
     if (!schoolNumber) errors.push("Öğrenci No alanı boş bırakılamaz.");
     if (schoolNumber.length > 40) errors.push("Öğrenci No en fazla 40 karakter olabilir.");
