@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 
 import { MaterialIcon } from "@/components/ui/icons";
-import { COOKIE_NOTICE_STORAGE_KEY } from "@/lib/legal/documents";
+import { COOKIE_NOTICE_STORAGE_KEY, KVKK_NOTICE_ENABLED } from "@/lib/legal/documents";
 
 const COOKIE_NOTICE_EXIT_MS = 160;
 
@@ -58,9 +58,11 @@ export function CookieNotice() {
             <Link className="text-emerald-300 underline decoration-emerald-300/50 underline-offset-4 hover:text-emerald-200" href="/cerez-politikasi">
               Çerez politikasını incele
             </Link>
-            <Link className="text-neutral-300 underline decoration-neutral-500 underline-offset-4 hover:text-white" href="/kvkk">
-              KVKK aydınlatması
-            </Link>
+            {KVKK_NOTICE_ENABLED && (
+              <Link className="text-neutral-300 underline decoration-neutral-500 underline-offset-4 hover:text-white" href="/kvkk">
+                KVKK aydınlatması
+              </Link>
+            )}
           </div>
         </div>
 

@@ -119,11 +119,7 @@ export default async function SignInPage({
             <>
               <LoginPortalForm />
               <p className="mt-6 border-t border-neutral-200 pt-5 text-center text-[11px] leading-5 text-neutral-500">
-                Giriş işlemi sırasında hesap, güvenlik ve yoklama doğrulama verileri işlenir. Devam etmeden önce{" "}
-                <Link href="/kvkk" className="font-medium text-neutral-700 underline decoration-neutral-300 underline-offset-4 hover:text-neutral-950">
-                  KVKK Aydınlatma Metni’ni
-                </Link>{" "}
-                inceleyin.
+                Giriş işlemi sırasında hesap, güvenlik ve yoklama doğrulama verileri işlenir.
               </p>
             </>
           )}

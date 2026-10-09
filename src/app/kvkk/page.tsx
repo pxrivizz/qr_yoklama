@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { LegalPage } from "@/components/legal/legal-page";
+import { KVKK_NOTICE_ENABLED } from "@/lib/legal/documents";
 
 export const metadata: Metadata = {
   title: "KVKK Aydınlatma Metni | DersDevam",
@@ -10,6 +12,8 @@ export const metadata: Metadata = {
 const listClass = "list-disc space-y-2 pl-5 marker:text-emerald-700";
 
 export default function KvkkPage() {
+  if (!KVKK_NOTICE_ENABLED) notFound();
+
   return (
     <LegalPage
       title="KVKK Aydınlatma Metni"
