@@ -60,7 +60,7 @@ export function buildAttendanceWorkbook(
   const rows = report.rows.map((row) => [
     sanitizeExcelCell(row.fullNameOnList),
     sanitizeExcelCell(row.schoolNumberOnList),
-    row.isMandatory ? "Evet" : "-",
+    row.isMandatory ? "Evet" : "Hayır",
     ...row.statuses.map((status) => statusLabels[status]),
     row.presentCount,
     row.absentCount,
@@ -184,6 +184,8 @@ export function buildAttendanceWorkbook(
       };
     }
 
+
+    // todo : renk ayari yap.
     const zorunluCell = worksheet[XLSX.utils.encode_cell({ r: rowIndex, c: 2 })];
     if (zorunluCell) {
       const isZorunlu = zorunluCell.v === "Evet";

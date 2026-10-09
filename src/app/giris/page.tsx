@@ -5,6 +5,7 @@ import { BrandMark } from "@/components/brand/brand-mark";
 import { LoginPortalForm } from "@/components/auth/login-portal-form";
 import { MaterialIcon } from "@/components/ui/icons";
 import { StatusMessage } from "@/components/ui/status-message";
+import { LegalLinks } from "@/components/legal/legal-links";
 
 function getErrorMessage(error?: string | string[]): string | null {
   const errorKey = typeof error === "string" ? error : Array.isArray(error) ? error[0] : null;
@@ -45,7 +46,7 @@ export default async function SignInPage({
           href="/"
           className="flex items-center gap-2.5 text-xs font-semibold text-neutral-900 transition-opacity hover:opacity-80"
         >
-          <BrandMark className="size-7 shadow-xs" priority />
+          <BrandMark className="size-7" priority />
           DersDevam
         </Link>
       </header>
@@ -53,7 +54,7 @@ export default async function SignInPage({
       <div className="mx-auto my-auto w-full max-w-md py-6">
         <div className="rounded-2xl border border-neutral-200/90 bg-white p-6 sm:p-8 shadow-sm">
           <div className="text-center mb-6">
-            <BrandMark className="mx-auto size-12 shadow-sm" priority />
+            <BrandMark className="mx-auto size-12" priority />
             <h1 className="mt-4 text-2xl font-bold tracking-tight text-neutral-900">
               Giriş Portalı
             </h1>
@@ -115,7 +116,16 @@ export default async function SignInPage({
               </div>
             </div>
           ) : (
-            <LoginPortalForm />
+            <>
+              <LoginPortalForm />
+              <p className="mt-6 border-t border-neutral-200 pt-5 text-center text-[11px] leading-5 text-neutral-500">
+                Giriş işlemi sırasında hesap, güvenlik ve yoklama doğrulama verileri işlenir. Devam etmeden önce{" "}
+                <Link href="/kvkk" className="font-medium text-neutral-700 underline decoration-neutral-300 underline-offset-4 hover:text-neutral-950">
+                  KVKK Aydınlatma Metni’ni
+                </Link>{" "}
+                inceleyin.
+              </p>
+            </>
           )}
         </div>
       </div>
@@ -124,6 +134,7 @@ export default async function SignInPage({
         <p className="text-xs text-neutral-400">
           DersDevam · Ders Yoklama Sistemi
         </p>
+        <LegalLinks className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[10px] text-neutral-400" />
       </footer>
     </main>
   );

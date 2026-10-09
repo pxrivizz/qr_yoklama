@@ -4,7 +4,52 @@ import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import { ApiError } from "@/lib/http/api-error";
 import type { RequestContext } from "@/lib/http/request-context";
-import type { CreateTeacherInput } from "@/lib/auth/account-schema";
+import type { CreateAdminInput, CreateTeacherInput } from "@/lib/auth/account-schema";
+
+export async function getAdminDashboardOverview() {
+  const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const [
+    teacherCount,
+    studentCount,
+    courseCount,
+    enrollmentCount,
+    linkedEnrollmentCount,
+    activeSessionCount,
+    recentAttendanceCount,
+    recentActivity,
+  ] = await Promise.all([
+    prisma.user.count({ where: { role: "TEACHER" } }),
+    prisma.user.count({ where: { role: "STUDENT" } }),
+    prisma.course.count(),
+    prisma.enrollment.count(),
+    prisma.enrollment.count({ where: { matchedUserId: { not: null } } }),
+    prisma.attendanceSession.count({ where: { status: "ACTIVE" } }),
+    prisma.attendanceRecord.count({ where: { recordedAt: { gte: last24Hours } } }),
+    prisma.auditLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 6,
+      select: {
+        id: true,
+        action: true,
+        entityType: true,
+        createdAt: true,
+        actor: { select: { name: true, email: true } },
+      },
+    }),
+  ]);
+
+  return {
+    teacherCount,
+    studentCount,
+    courseCount,
+    enrollmentCount,
+    linkedEnrollmentCount,
+    activeSessionCount,
+    recentAttendanceCount,
+    recentActivity,
+  };
+}
 
 export async function listTeachers() {
   const teachers = await prisma.user.findMany({
@@ -23,6 +68,64 @@ export async function listTeachers() {
     ...teacher,
     hasPassword: Boolean(passwordHash),
   }));
+}
+
+export async function listAdmins() {
+  const admins = await prisma.user.findMany({
+    where: { role: "ADMIN" },
+    orderBy: [{ name: "asc" }, { email: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      createdAt: true,
+      passwordHash: true,
+    },
+  });
+
+  return admins.map(({ passwordHash, ...admin }) => ({
+    ...admin,
+    hasPassword: Boolean(passwordHash),
+  }));
+}
+
+export async function createAdmin(
+  actorAdminId: string,
+  input: CreateAdminInput,
+  context: RequestContext,
+) {
+  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  if (existing) {
+    throw new ApiError(409, "EMAIL_ALREADY_EXISTS", "Bu e-posta adresi zaten kullanılıyor.");
+  }
+
+  const passwordHash = await hashPassword(input.temporaryPassword);
+  return prisma.$transaction(async (tx) => {
+    const admin = await tx.user.create({
+      data: {
+        name: input.name,
+        email: input.email,
+        role: "ADMIN",
+        emailVerified: new Date(),
+        passwordHash,
+        passwordChangedAt: new Date(),
+      },
+      select: { id: true, name: true, email: true, createdAt: true },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        actorId: actorAdminId,
+        action: "ADMIN_CREATED",
+        entityType: "User",
+        entityId: admin.id,
+        after: { name: admin.name, email: admin.email, role: "ADMIN" },
+        ...context,
+      },
+    });
+
+    return admin;
+  });
 }
 
 export async function createTeacher(

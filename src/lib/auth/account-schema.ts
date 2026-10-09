@@ -16,6 +16,14 @@ export const createTeacherSchema = z
   })
   .strict();
 
+export const createAdminSchema = z
+  .object({
+    name: z.string().trim().min(2, "Ad soyad en az 2 karakter olmalıdır.").max(120),
+    email: z.string().trim().toLowerCase().pipe(z.email("Geçerli bir e-posta adresi girin.")),
+    temporaryPassword: strongPasswordSchema,
+  })
+  .strict();
+
 export const resetTeacherPasswordSchema = z
   .object({ temporaryPassword: strongPasswordSchema })
   .strict();
@@ -49,4 +57,5 @@ export const changePasswordSchema = z
   });
 
 export type CreateTeacherInput = z.infer<typeof createTeacherSchema>;
+export type CreateAdminInput = z.infer<typeof createAdminSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

@@ -63,7 +63,11 @@ export function SideNav({ userName, onSignOut, open = false, onClose, isImperson
     <div className="flex h-full flex-col bg-[#0b0f17] border-r border-white/[0.08] text-white shadow-2xl lg:shadow-none">
       <div className="border-b border-white/[0.08] px-6 py-6">
         <Link href="/ogretmen" className="flex items-center gap-3 group">
-          <BrandMark className="size-10 shadow-sm transition-transform duration-200 group-hover:scale-105" priority />
+          <BrandMark
+            variant="sidebar"
+            className="size-10 transition-transform duration-200 group-hover:scale-105"
+            priority
+          />
           <div className="min-w-0 flex-1">
             <h1 className="text-base font-semibold tracking-tight text-white flex items-center gap-2">
               DersDevam

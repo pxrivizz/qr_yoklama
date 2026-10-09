@@ -4,6 +4,7 @@ import { BrandMark } from "@/components/brand/brand-mark";
 import { ButtonLink } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/ui/icons";
 import { StatusMessage } from "@/components/ui/status-message";
+import { LegalLinks } from "@/components/legal/legal-links";
 
 export default async function Home({
   searchParams,
@@ -17,7 +18,7 @@ export default async function Home({
       <header className="sticky top-0 z-30 border-b border-neutral-200/80 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <span className="flex items-center gap-2.5 text-base font-semibold text-neutral-900">
-            <BrandMark className="size-8 shadow-xs" priority />
+            <BrandMark className="size-8" priority />
             DersDevam
           </span>
           <Link
@@ -91,13 +92,16 @@ export default async function Home({
       </div>
 
       <footer className="border-t border-neutral-200/80 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
+        <div className="mx-auto flex max-w-5xl flex-col gap-4 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-xs text-neutral-500">
             DersDevam · Ders Yoklama Sistemi
           </span>
-          <span className="flex items-center gap-1.5 text-xs text-neutral-600">
-            <MaterialIcon name="school" className="text-base" /> Muğla Sıtkı Koçman Üniversitesi
-          </span>
+          <div className="flex flex-col gap-2 sm:items-end">
+            <span className="flex items-center gap-1.5 text-xs text-neutral-600">
+              <MaterialIcon name="school" className="text-base" /> Muğla Sıtkı Koçman Üniversitesi
+            </span>
+            <LegalLinks className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-neutral-400" />
+          </div>
         </div>
       </footer>
     </main>
