@@ -16,10 +16,12 @@ export function LegalPage({
   title,
   summary,
   sections,
+  showDraftNotice = true,
 }: {
   title: string;
   summary: string;
   sections: LegalSection[];
+  showDraftNotice?: boolean;
 }) {
   return (
     <main className="min-h-dvh bg-neutral-50 text-neutral-900">
@@ -52,12 +54,14 @@ export function LegalPage({
           <div className="legal-page__intro max-w-3xl border-b border-neutral-200 pb-10">
             <h1 className="text-3xl font-bold tracking-[-0.03em] sm:text-4xl">{title}</h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-600">{summary}</p>
-            <div className="mt-6 flex items-start gap-3 rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-              <MaterialIcon name="gavel" className="mt-0.5 shrink-0 text-[20px]" />
-              <p>
-                Bu metin, sistemin mevcut teknik işleyişine göre hazırlanmış bir taslaktır. Veri sorumlusunun resmî unvanı, hukuki sebepler, saklama süreleri ve başvuru kanalı kurumun hukuk/KVKK birimi tarafından yayın öncesinde doğrulanmalıdır.
-              </p>
-            </div>
+            {showDraftNotice && (
+              <div className="mt-6 flex items-start gap-3 rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                <MaterialIcon name="gavel" className="mt-0.5 shrink-0 text-[20px]" />
+                <p>
+                  Bu metin, sistemin mevcut teknik işleyişine göre hazırlanmış bir taslaktır. Veri sorumlusunun resmî unvanı, hukuki sebepler, saklama süreleri ve başvuru kanalı kurumun hukuk/KVKK birimi tarafından yayın öncesinde doğrulanmalıdır.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="max-w-3xl divide-y divide-neutral-200">

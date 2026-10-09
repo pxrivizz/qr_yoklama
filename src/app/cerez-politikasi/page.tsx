@@ -12,6 +12,7 @@ export default function CookiePolicyPage() {
     <LegalPage
       title="Çerez Politikası"
       summary="DersDevam şu anda reklam, pazarlama veya ziyaretçi analizi çerezi kullanmaz. Aşağıdaki teknik kayıtlar giriş, güvenlik ve yoklama doğrulaması için zorunludur."
+      showDraftNotice={false}
       sections={[
         {
           id: "yaklasim",
@@ -38,11 +39,11 @@ export default function CookiePolicyPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200">
-                  <tr><td className="py-3 pr-4 font-mono text-[11px]">authjs.*</td><td className="py-3 pr-4">Güvenli giriş, CSRF koruması ve oturum yönlendirmesi</td><td className="py-3 pr-4">Oturum / en fazla 20 dakika</td><td className="py-3">Birinci taraf, zorunlu</td></tr>
-                  <tr><td className="py-3 pr-4 font-mono text-[11px]">qr_attendance_device</td><td className="py-3 pr-4">Aynı cihazla mükerrer veya farklı hesaplı yoklama denemelerini önleme</td><td className="py-3 pr-4">1 yıl</td><td className="py-3">Birinci taraf, zorunlu</td></tr>
-                  <tr><td className="py-3 pr-4 font-mono text-[11px]">teacher_impersonation</td><td className="py-3 pr-4">Yöneticinin destek amacıyla öğretmen görünümüne güvenli geçişi</td><td className="py-3 pr-4">15 dakika</td><td className="py-3">Birinci taraf, zorunlu</td></tr>
-                  <tr><td className="py-3 pr-4 font-mono text-[11px]">dersdevam:cookie-notice:*</td><td className="py-3 pr-4">Çerez bilgilendirmesini gördüğünüzü hatırlama</td><td className="py-3 pr-4">Metin sürümü değişene kadar</td><td className="py-3">Yerel depolama, zorunlu</td></tr>
-                  <tr><td className="py-3 pr-4 font-mono text-[11px]">qr-yoklama:last-activity</td><td className="py-3 pr-4">Hareketsiz oturumu güvenli biçimde sonlandırma</td><td className="py-3 pr-4">Aktif oturum boyunca</td><td className="py-3">Yerel depolama, zorunlu</td></tr>
+                  <tr><td className="py-3 pr-4 font-medium text-neutral-900">Giriş ve oturum güvenliği</td><td className="py-3 pr-4">Hesabınıza güvenli giriş yapılmasını ve giriş sonrasında doğru sayfaya yönlendirilmenizi sağlar.</td><td className="py-3 pr-4">Oturum süresince, en fazla 20 dakika</td><td className="py-3">Zorunlu çerez</td></tr>
+                  <tr><td className="py-3 pr-4 font-medium text-neutral-900">Cihaz doğrulama</td><td className="py-3 pr-4">Aynı cihazdan tekrar veya farklı hesaplarla yoklama gönderilmesini önlemeye yardımcı olur.</td><td className="py-3 pr-4">1 yıl</td><td className="py-3">Zorunlu çerez</td></tr>
+                  <tr><td className="py-3 pr-4 font-medium text-neutral-900">Öğretmen hesabını görüntüleme</td><td className="py-3 pr-4">Yöneticinin destek verirken öğretmen panelini kısa süreli ve güvenli biçimde görüntülemesini sağlar.</td><td className="py-3 pr-4">15 dakika</td><td className="py-3">Zorunlu çerez</td></tr>
+                  <tr><td className="py-3 pr-4 font-medium text-neutral-900">Çerez bildirimi tercihi</td><td className="py-3 pr-4">Bu bilgilendirmeyi gördüğünüzü hatırlar ve aynı bildirimin gereksiz yere tekrar gösterilmesini önler.</td><td className="py-3 pr-4">Politika güncellenene kadar</td><td className="py-3">Zorunlu tarayıcı kaydı</td></tr>
+                  <tr><td className="py-3 pr-4 font-medium text-neutral-900">Oturum etkinliği</td><td className="py-3 pr-4">Uzun süre işlem yapılmayan oturumları güvenli biçimde kapatmak için son etkinlik zamanını hatırlar.</td><td className="py-3 pr-4">Aktif oturum boyunca</td><td className="py-3">Zorunlu tarayıcı kaydı</td></tr>
                 </tbody>
               </table>
             </div>
