@@ -25,7 +25,7 @@ type MyBugReport = {
     id: string;
     message: string;
     createdAt: string;
-    author: { name: string | null; role: "ADMIN" | "TEACHER" | "STUDENT" };
+    author: { name: string | null; roles: Array<"ADMIN" | "TEACHER" | "STUDENT"> };
   }>;
 };
 
@@ -387,7 +387,7 @@ function ReportDetail({ report, onBack }: { report: MyBugReport; onBack: () => v
               <li key={response.id} className="border-b border-outline-variant pb-4 last:border-b-0 last:pb-0">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-on-surface">
-                    {response.author.name?.trim() || (response.author.role === "ADMIN" ? "Yönetici" : "Öğretmen")}
+                    {response.author.name?.trim() || (response.author.roles.includes("ADMIN") ? "Yönetici" : "Öğretmen")}
                   </span>
                   <span className="text-xs text-on-surface-variant">{formatDate(response.createdAt)}</span>
                 </div>

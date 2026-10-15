@@ -11,7 +11,7 @@ import { StatusMessage } from "@/components/ui/status-message";
 import { cn } from "@/lib/cn";
 
 type BugReportStatus = "PENDING" | "IN_PROGRESS" | "FIXED";
-type ReportUser = { id: string; name: string | null; email: string; role: "ADMIN" | "TEACHER" | "STUDENT" };
+type ReportUser = { id: string; name: string | null; email: string; roles: Array<"ADMIN" | "TEACHER" | "STUDENT"> };
 
 export type BugReportItem = {
   id: string;
