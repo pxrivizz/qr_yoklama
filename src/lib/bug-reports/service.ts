@@ -15,15 +15,15 @@ const reportSelect = {
   resolvedAt: true,
   createdAt: true,
   updatedAt: true,
-  reporter: { select: { id: true, name: true, email: true, role: true } },
-  handledBy: { select: { id: true, name: true, email: true, role: true } },
+  reporter: { select: { id: true, name: true, email: true, roles: true } },
+  handledBy: { select: { id: true, name: true, email: true, roles: true } },
   responses: {
     orderBy: { createdAt: "asc" as const },
     select: {
       id: true,
       message: true,
       createdAt: true,
-      author: { select: { id: true, name: true, email: true, role: true } },
+      author: { select: { id: true, name: true, email: true, roles: true } },
     },
   },
 } as const;
@@ -42,7 +42,7 @@ const reporterReportSelect = {
       id: true,
       message: true,
       createdAt: true,
-      author: { select: { name: true, role: true } },
+      author: { select: { name: true, roles: true } },
     },
   },
 } as const;
