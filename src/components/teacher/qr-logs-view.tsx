@@ -99,6 +99,8 @@ function getResultBadge(result: QrScanResult) {
   switch (result) {
     case "SUCCESS":
       return { variant: "success" as const, label: "Başarılı", icon: "check_circle" };
+    case "FLAGGED":
+      return { variant: "warning" as const, label: "İncelemede", icon: "flag" };
     case "DUPLICATE_SCAN":
       return { variant: "warning" as const, label: "Tekrar Okutma", icon: "replay" };
     case "DEVICE_ALREADY_USED":

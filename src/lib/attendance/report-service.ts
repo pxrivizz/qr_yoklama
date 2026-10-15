@@ -2,18 +2,20 @@ import "server-only";
 
 import { prisma } from "@/lib/db";
 import { ApiError } from "@/lib/http/api-error";
+import { courseAccessWhere } from "@/lib/courses/permissions";
 
 import { buildStudentAttendanceRows } from "./report";
 
 export async function getCourseAttendanceReport(teacherId: string, courseId: string) {
   const course = await prisma.course.findFirst({
-    where: { id: courseId, teacherId },
+    where: { id: courseId, ...courseAccessWhere(teacherId, "REPORT_VIEW") },
     select: {
       id: true,
       name: true,
       code: true,
       mandatoryAlertLimit: true,
       enrollments: {
+        where: { archivedAt: null },
         orderBy: [{ fullNameOnList: "asc" }],
         select: {
           id: true,
@@ -38,7 +40,13 @@ export async function getCourseAttendanceReport(teacherId: string, courseId: str
           startedAt: true,
           createdBy: true,
           attendanceRecords: {
-            select: { enrollmentId: true, status: true },
+            select: {
+              enrollmentId: true,
+              status: true,
+              recordedAt: true,
+              ipAddress: true,
+              deviceFingerprintHash: true,
+            },
           },
         },
       },

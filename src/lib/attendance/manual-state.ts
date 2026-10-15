@@ -1,4 +1,4 @@
-export type ManualAttendanceStatus = "PRESENT" | "ABSENT";
+export type ManualAttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
 
 type ExistingAttendanceRecord = {
   enrollmentId: string;
@@ -19,7 +19,11 @@ export function buildManualAttendanceRecords(
   const statuses = new Map(
     existingRecords.map((record) => [
       record.enrollmentId,
-      record.status === "PRESENT" ? "PRESENT" : "ABSENT",
+      record.status === "PRESENT" ||
+      record.status === "LATE" ||
+      record.status === "EXCUSED"
+        ? record.status
+        : "ABSENT",
     ] as const),
   );
 

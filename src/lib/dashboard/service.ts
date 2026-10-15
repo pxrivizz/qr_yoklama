@@ -3,6 +3,8 @@ import "server-only";
 import { calculatePlannedSessionCount } from "@/lib/attendance/schedule";
 import { sessionDateKey } from "@/lib/attendance/slot";
 import { prisma } from "@/lib/db";
+import { countsAsAttended } from "@/lib/attendance/status";
+import { courseAccessWhere } from "@/lib/courses/permissions";
 
 export type DashboardStats = {
   totalCourses: number;
@@ -73,7 +75,7 @@ export type CourseSummaryItem = {
 
 export async function getTeacherDashboardData(teacherId: string) {
   const courses = await prisma.course.findMany({
-    where: { teacherId },
+    where: courseAccessWhere(teacherId, "COURSE_VIEW"),
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -89,6 +91,7 @@ export async function getTeacherDashboardData(teacherId: string) {
       mandatoryAlertLimit: true,
       createdAt: true,
       enrollments: {
+        where: { archivedAt: null },
         select: {
           id: true,
           fullNameOnList: true,
@@ -98,11 +101,12 @@ export async function getTeacherDashboardData(teacherId: string) {
       },
       _count: {
         select: {
-          enrollments: true,
+          enrollments: { where: { archivedAt: null } },
           attendanceSessions: { where: { status: "CLOSED" } },
         },
       },
       attendanceSessions: {
+        where: { status: { in: ["ACTIVE", "CLOSED"] } },
         orderBy: { startedAt: "desc" },
         select: {
           id: true,
@@ -135,8 +139,8 @@ export async function getTeacherDashboardData(teacherId: string) {
   for (const c of courses) {
     const active = c.attendanceSessions.find((s) => s.status === "ACTIVE");
     if (active) {
-      const activePresent = active.attendanceRecords.filter((r) =>
-        r.status === "PRESENT",
+      const activePresent = active.attendanceRecords.filter((record) =>
+        countsAsAttended(record.status),
       ).length;
       activeSessions.push({
         sessionId: active.id,
@@ -156,8 +160,8 @@ export async function getTeacherDashboardData(teacherId: string) {
 
     for (const session of c.attendanceSessions) {
       if (session.status === "CLOSED") {
-        const sessionPresentCount = session.attendanceRecords.filter(
-          (record) => record.status === "PRESENT",
+        const sessionPresentCount = session.attendanceRecords.filter((record) =>
+          countsAsAttended(record.status),
         ).length;
         totalRecordsCount += c._count.enrollments;
         presentCount += sessionPresentCount;
@@ -191,8 +195,8 @@ export async function getTeacherDashboardData(teacherId: string) {
   for (const c of courses) {
     for (const s of c.attendanceSessions) {
       const enrolled = c._count.enrollments;
-      const attended = s.attendanceRecords.filter(
-        (r) => r.status === "PRESENT",
+      const attended = s.attendanceRecords.filter((record) =>
+        countsAsAttended(record.status),
       ).length;
       const rate = enrolled > 0 ? Math.round((attended / enrolled) * 100) : 0;
 
@@ -207,7 +211,7 @@ export async function getTeacherDashboardData(teacherId: string) {
         sessionDate: s.sessionDate ? sessionDateKey(s.sessionDate) : null,
         lessonPeriod: s.lessonPeriod,
         startedAt: s.startedAt,
-        status: s.status,
+        status: s.status as "ACTIVE" | "CLOSED",
         presentCount: attended,
         totalEnrollments: enrolled,
         attendanceRate: rate,
@@ -227,7 +231,7 @@ export async function getTeacherDashboardData(teacherId: string) {
         const attendedSessions = closedSessions.filter((session) =>
           session.attendanceRecords.some(
             (record) =>
-              record.enrollmentId === enrollment.id && record.status === "PRESENT",
+              record.enrollmentId === enrollment.id && countsAsAttended(record.status),
           ),
         ).length;
         const absents = Math.max(0, closedSessions.length - attendedSessions);

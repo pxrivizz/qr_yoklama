@@ -5,7 +5,7 @@ const recordsSchema = z
     z
       .object({
         enrollmentId: z.string().min(1).max(64),
-        status: z.enum(["PRESENT", "ABSENT"]),
+        status: z.enum(["PRESENT", "ABSENT", "LATE", "EXCUSED"]),
       })
       .strict(),
   )
@@ -17,11 +17,13 @@ export const manualAttendanceSchema = z.union([
     weekNumber: z.number().int().min(1).max(52),
     sessionIndexInWeek: z.number().int().min(1).max(10),
     records: recordsSchema,
+    correctionReason: z.string().trim().min(5).max(500).optional(),
   }).strict(),
   z.object({
     sessionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     lessonPeriod: z.number().int().min(1).max(16),
     records: recordsSchema,
+    correctionReason: z.string().trim().min(5).max(500).optional(),
   }).strict(),
 ]);
 

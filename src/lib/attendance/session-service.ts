@@ -13,6 +13,7 @@ import {
 import { calculateNextSessionSlot } from "@/lib/attendance/schedule";
 import { buildManualAttendanceRecords } from "@/lib/attendance/manual-state";
 import { getTeacherCourse } from "@/lib/courses/service";
+import { requireCoursePermission } from "@/lib/courses/permissions";
 import { createAttendanceNotifications } from "@/lib/notifications/service";
 import type { ManualAttendanceInput } from "@/lib/attendance/manual-schema";
 import type { StartAttendanceSessionInput } from "@/lib/attendance/start-schema";
@@ -27,6 +28,7 @@ import {
 } from "@/lib/attendance/slot";
 
 async function assertCourseOwnership(teacherId: string, courseId: string) {
+  await requireCoursePermission(teacherId, courseId, "ATTENDANCE_MANAGE");
   return getTeacherCourse(teacherId, courseId);
 }
 
@@ -131,7 +133,7 @@ export async function startAttendanceSession(
     }
 
     const duplicate = await tx.attendanceSession.findFirst({
-      where: slotWhere(courseId, slot),
+      where: { ...slotWhere(courseId, slot), status: { not: "VOIDED" } },
       select: { id: true },
     });
     if (duplicate) {
@@ -154,6 +156,7 @@ export async function startAttendanceSession(
         schoolLng: course.schoolLng,
         allowedRadiusMeters: course.allowedRadiusMeters,
         allowedIpRanges: course.allowedIpRanges,
+        policySnapshot: course.attendancePolicy,
       },
     });
 
@@ -180,7 +183,15 @@ export async function startAttendanceSession(
     await createAttendanceNotifications(courseId, session.id);
     return state;
   } catch (error) {
-    await prisma.attendanceSession.delete({ where: { id: session.id } }).catch(() => undefined);
+    await prisma.attendanceSession.update({
+      where: { id: session.id },
+      data: {
+        status: "VOIDED",
+        voidedAt: new Date(),
+        voidedByUserId: teacherId,
+        voidReason: "Oturum başlatma işlemi tamamlanamadı.",
+      },
+    }).catch(() => undefined);
     throw error;
   }
 }
@@ -340,10 +351,15 @@ export async function resetAttendanceSession(
     const qrScanLogCount = await tx.qrScanLog.count({ where: { sessionId: session.id } });
     const notificationCount = await tx.notification.count({ where: { sessionId: session.id } });
 
-    await tx.notification.deleteMany({ where: { sessionId: session.id } });
-    await tx.qrScanLog.deleteMany({ where: { sessionId: session.id } });
-    await tx.attendanceAttempt.deleteMany({ where: { sessionId: session.id } });
-    await tx.attendanceSession.delete({ where: { id: session.id } });
+    await tx.attendanceSession.update({
+      where: { id: session.id },
+      data: {
+        status: "VOIDED",
+        voidedAt: new Date(),
+        voidedByUserId: teacherId,
+        voidReason: input.reason,
+      },
+    });
 
     const deleted = {
       sessionCount: 1,
@@ -356,7 +372,7 @@ export async function resetAttendanceSession(
     await tx.auditLog.create({
       data: {
         actorId: teacherId,
-        action: "SESSION_ATTENDANCE_RESET",
+        action: "SESSION_VOIDED",
         entityType: "AttendanceSession",
         entityId: session.id,
         before: {
@@ -372,7 +388,7 @@ export async function resetAttendanceSession(
           createdBy: session.createdBy,
           ...deleted,
         },
-        after: { sessionDeleted: true },
+        after: { sessionVoided: true, reason: input.reason },
         ...context,
       },
     });
@@ -385,7 +401,7 @@ export async function getManualAttendanceRoster(teacherId: string, courseId: str
   const course = await assertCourseOwnership(teacherId, courseId);
   const [enrollments, sessions, completedCount] = await Promise.all([
     prisma.enrollment.findMany({
-      where: { courseId },
+      where: { courseId, archivedAt: null },
       orderBy: [{ fullNameOnList: "asc" }],
       select: {
         id: true,
@@ -398,7 +414,7 @@ export async function getManualAttendanceRoster(teacherId: string, courseId: str
       },
     }),
     prisma.attendanceSession.findMany({
-      where: { courseId },
+      where: { courseId, status: { not: "VOIDED" } },
       orderBy: { startedAt: "desc" },
       select: {
         id: true,
@@ -442,7 +458,7 @@ export async function getManualAttendanceRoster(teacherId: string, courseId: str
     initialSession: selectedSession
       ? {
           id: selectedSession.id,
-          status: selectedSession.status,
+          status: selectedSession.status as "ACTIVE" | "CLOSED",
           createdBy: selectedSession.createdBy,
         }
       : null,
@@ -462,9 +478,9 @@ export async function getManualAttendanceSlot(
   const slot = validateCourseSlot(course, input);
 
   const [enrollments, session] = await Promise.all([
-    prisma.enrollment.findMany({ where: { courseId }, select: { id: true } }),
+    prisma.enrollment.findMany({ where: { courseId, archivedAt: null }, select: { id: true } }),
     prisma.attendanceSession.findFirst({
-      where: slotWhere(courseId, slot),
+      where: { ...slotWhere(courseId, slot), status: { not: "VOIDED" } },
       select: {
         id: true,
         status: true,
@@ -476,7 +492,7 @@ export async function getManualAttendanceSlot(
 
   return {
     session: session
-      ? { id: session.id, status: session.status, createdBy: session.createdBy }
+      ? { id: session.id, status: session.status as "ACTIVE" | "CLOSED", createdBy: session.createdBy }
       : null,
     records: buildManualAttendanceRecords(
       enrollments.map((enrollment) => enrollment.id),
@@ -521,7 +537,7 @@ export async function createManualAttendanceSession(
       select: { id: true },
     }),
     prisma.attendanceSession.findFirst({
-      where: slotWhere(courseId, slot),
+      where: { ...slotWhere(courseId, slot), status: { not: "VOIDED" } },
       select: {
         id: true,
         status: true,
@@ -550,9 +566,25 @@ export async function createManualAttendanceSession(
       const changedRecords = input.records.filter(
         (record) => existingByEnrollment.get(record.enrollmentId)?.status !== record.status,
       );
+      if (changedRecords.length > 0 && !input.correctionReason) {
+        throw new ApiError(
+          422,
+          "CORRECTION_REASON_REQUIRED",
+          "Mevcut yoklama değiştirilirken düzeltme nedeni zorunludur.",
+        );
+      }
       for (const record of changedRecords) {
         const existingRecord = existingByEnrollment.get(record.enrollmentId);
         if (existingRecord) {
+          await tx.attendanceRevision.create({
+            data: {
+              recordId: existingRecord.id,
+              editedByUserId: teacherId,
+              beforeStatus: existingRecord.status,
+              afterStatus: record.status,
+              reason: input.correctionReason!,
+            },
+          });
           await tx.attendanceRecord.update({
             where: { id: existingRecord.id },
             data: {
@@ -615,6 +647,7 @@ export async function createManualAttendanceSession(
         schoolLng: course.schoolLng,
         allowedRadiusMeters: course.allowedRadiusMeters,
         allowedIpRanges: course.allowedIpRanges,
+        policySnapshot: course.attendancePolicy,
       },
     });
 
@@ -665,7 +698,7 @@ export type StudentActiveSessionItem = {
 
 export async function getStudentActiveSessions(studentId: string): Promise<StudentActiveSessionItem[]> {
   const enrollments = await prisma.enrollment.findMany({
-    where: { matchedUserId: studentId },
+    where: { matchedUserId: studentId, archivedAt: null, course: { archivedAt: null } },
     select: {
       id: true,
       courseId: true,

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { resetAttendanceSessionSchema } from "./reset-schema";
 
 describe("resetAttendanceSessionSchema", () => {
-  const validInput = { sessionId: "session-1", confirmation: "SIFIRLA" };
+  const validInput = { sessionId: "session-1", confirmation: "SIFIRLA", reason: "Yanlış oturum seçildi." };
 
   it("requires a valid slot and the exact destructive action confirmation", () => {
     expect(resetAttendanceSessionSchema.safeParse(validInput).success).toBe(true);

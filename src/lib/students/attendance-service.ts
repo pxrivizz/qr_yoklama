@@ -3,6 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { ApiError } from "@/lib/http/api-error";
 import { calculateAbsenceLimitStatus, type AbsenceLimitLevel } from "@/lib/attendance/absence-limit";
+import { countsAsAttended, isExcusedStatus } from "@/lib/attendance/status";
 
 export type StudentAttendanceSessionItem = {
   sessionId: string;
@@ -14,7 +15,7 @@ export type StudentAttendanceSessionItem = {
   startedAt: Date;
   endedAt: Date | null;
   sessionStatus: "ACTIVE" | "CLOSED";
-  status: "PRESENT" | "EXCUSED" | "ABSENT" | "ACTIVE_PENDING";
+  status: "PRESENT" | "LATE" | "FLAGGED" | "EXCUSED" | "ABSENT" | "ACTIVE_PENDING";
   statusLabel: string;
   isAttended: boolean;
   isExcused: boolean;
@@ -78,7 +79,7 @@ export async function getStudentCourseAttendanceDetail(
   courseId: string,
 ): Promise<StudentCourseAttendanceDetail> {
   const enrollment = await prisma.enrollment.findFirst({
-    where: { courseId, matchedUserId: studentId },
+    where: { courseId, matchedUserId: studentId, archivedAt: null, course: { archivedAt: null } },
     include: {
       course: {
         include: {
@@ -99,7 +100,7 @@ export async function getStudentCourseAttendanceDetail(
   }
 
   const sessions = await prisma.attendanceSession.findMany({
-    where: { courseId },
+    where: { courseId, status: { not: "VOIDED" } },
     orderBy: [
       { startedAt: "desc" },
       { weekNumber: "desc" },
@@ -121,9 +122,9 @@ export async function getStudentCourseAttendanceDetail(
     const record = session.attendanceRecords[0];
     if (!record) {
       unexcusedAbsenceCount += 1;
-    } else if (record.status === "PRESENT") {
+    } else if (countsAsAttended(record.status)) {
       attendedCount += 1;
-    } else if (record.isExcused) {
+    } else if (isExcusedStatus(record.status)) {
       excusedAbsenceCount += 1;
     } else {
       unexcusedAbsenceCount += 1;
@@ -171,11 +172,11 @@ export async function getStudentCourseAttendanceDetail(
       if (!record) {
         status = "ACTIVE_PENDING";
         statusLabel = "Yoklama Açık (Okutulmadı)";
-      } else if (record.status === "PRESENT") {
-        status = "PRESENT";
-        statusLabel = "Katıldınız";
+      } else if (countsAsAttended(record.status)) {
+        status = record.status;
+        statusLabel = record.status === "LATE" ? "Geç katıldınız" : record.status === "FLAGGED" ? "Kontrol bekliyor" : "Katıldınız";
         isAttended = true;
-      } else if (record.isExcused) {
+      } else if (isExcusedStatus(record.status)) {
         status = "EXCUSED";
         statusLabel = "Mazeretli";
         isExcused = true;
@@ -187,11 +188,11 @@ export async function getStudentCourseAttendanceDetail(
       if (!record) {
         status = "ABSENT";
         statusLabel = "Devamsız";
-      } else if (record.status === "PRESENT") {
-        status = "PRESENT";
-        statusLabel = "Katıldı";
+      } else if (countsAsAttended(record.status)) {
+        status = record.status;
+        statusLabel = record.status === "LATE" ? "Geç katıldı" : record.status === "FLAGGED" ? "Kontrol bekliyor" : "Katıldı";
         isAttended = true;
-      } else if (record.isExcused) {
+      } else if (isExcusedStatus(record.status)) {
         status = "EXCUSED";
         statusLabel = "Mazeretli Devamsız";
         isExcused = true;
@@ -217,11 +218,11 @@ export async function getStudentCourseAttendanceDetail(
       lessonPeriod: session.lessonPeriod,
       startedAt: session.startedAt,
       endedAt: session.endedAt,
-      sessionStatus: session.status,
+      sessionStatus: session.status as "ACTIVE" | "CLOSED",
       status,
       statusLabel,
       isAttended,
-      isExcused: isExcused || Boolean(record?.isExcused),
+      isExcused,
       excuseReason: record?.excuseReason ?? null,
       note: record?.note ?? null,
       source: sourceText,

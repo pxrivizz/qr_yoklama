@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { ApiError } from "@/lib/http/api-error";
 import type { RequestContext } from "@/lib/http/request-context";
 import { calculateAbsenceLimitStatus, type AbsenceLimitLevel } from "@/lib/attendance/absence-limit";
+import { canUseStudentMode } from "@/lib/auth/role-policy";
+import { absenceContribution, countsAsAttended } from "@/lib/attendance/status";
 
 import { arePersonNamesCompatible, normalizePersonName } from "./name";
 
@@ -56,7 +58,7 @@ export type StudentCourseItem = {
 
 export async function listStudentCourses(studentId: string): Promise<StudentCourseItem[]> {
   const enrollments = await prisma.enrollment.findMany({
-    where: { matchedUserId: studentId },
+    where: { matchedUserId: studentId, archivedAt: null, course: { archivedAt: null } },
     orderBy: { course: { code: "asc" } },
     select: {
       id: true,
@@ -87,10 +89,13 @@ export async function listStudentCourses(studentId: string): Promise<StudentCour
 
   return enrollments.map((enrollment) => {
     const totalClosedSessions = enrollment.course._count.attendanceSessions;
-    const attendedCount = enrollment.attendanceRecords.filter(
-      (r) => r.status === "PRESENT",
-    ).length;
-    const absentCount = Math.max(0, totalClosedSessions - attendedCount);
+    const attendedCount = enrollment.attendanceRecords.filter((r) => countsAsAttended(r.status)).length;
+    const recordedAbsence = enrollment.attendanceRecords.reduce(
+      (total, record) => total + absenceContribution(record.status),
+      0,
+    );
+    const recordedCount = enrollment.attendanceRecords.length;
+    const absentCount = recordedAbsence + Math.max(0, totalClosedSessions - recordedCount);
     const limit = enrollment.course.mandatoryAlertLimit;
     const { isFailed, isAtLimit, isNearLimit, limitLevel } =
       calculateAbsenceLimitStatus(absentCount, limit, enrollment.isMandatory);
@@ -128,9 +133,9 @@ export async function matchStudentEnrollments(
 ) {
   const student = await prisma.user.findUnique({
     where: { id: studentId },
-    select: { id: true, role: true, name: true },
+    select: { id: true, roles: true, name: true },
   });
-  if (!student || student.role !== "STUDENT") {
+  if (!student || !canUseStudentMode(student.roles)) {
     throw new ApiError(403, "STUDENT_REQUIRED", "Bu işlem yalnızca öğrenciler içindir.");
   }
   if (!student.name) {
@@ -143,7 +148,7 @@ export async function matchStudentEnrollments(
 
   const normalizedName = normalizePersonName(student.name);
   const numberMatches = await prisma.enrollment.findMany({
-    where: { schoolNumberOnList: schoolNumber },
+    where: { schoolNumberOnList: schoolNumber, archivedAt: null, course: { archivedAt: null } },
     select: {
       id: true,
       normalizedNameOnList: true,
@@ -234,9 +239,9 @@ export async function updateStudentPhoto(
   assertSafeStudentPhoto(image);
   const student = await prisma.user.findUnique({
     where: { id: studentId },
-    select: { id: true, role: true },
+    select: { id: true, roles: true },
   });
-  if (!student || student.role !== "STUDENT") {
+  if (!student || !canUseStudentMode(student.roles)) {
     throw new ApiError(403, "STUDENT_REQUIRED", "Bu işlem yalnızca öğrenciler içindir.");
   }
 

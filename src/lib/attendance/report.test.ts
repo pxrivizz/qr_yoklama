@@ -30,7 +30,13 @@ describe("yoklama raporu", () => {
           lessonPeriod: null,
           startedAt: new Date("2026-08-01T08:00:00Z"),
           createdBy: "SYSTEM_QR",
-          records: [{ enrollmentId: "student-1", status: "PRESENT" }],
+          records: [{
+            enrollmentId: "student-1",
+            status: "PRESENT",
+            recordedAt: new Date("2026-08-01T08:05:00Z"),
+            ipAddress: "194.27.153.30",
+            deviceFingerprintHash: "abcdef1234567890",
+          }],
         },
       ],
       enrollments,
@@ -38,6 +44,10 @@ describe("yoklama raporu", () => {
     );
 
     expect(rows[0]).toMatchObject({ statuses: ["PRESENT"], absentCount: 0, alert: false });
+    expect(rows[0].recordDetails[0]).toMatchObject({
+      ipAddress: "194.27.153.30",
+      deviceFingerprintHash: "abcdef1234567890",
+    });
     expect(rows[1]).toMatchObject({ statuses: ["ABSENT"], absentCount: 1, alert: false });
   });
 
@@ -53,7 +63,13 @@ describe("yoklama raporu", () => {
           lessonPeriod: null,
           startedAt: new Date("2026-08-01T08:00:00Z"),
           createdBy: "TEACHER_MANUAL",
-          records: [{ enrollmentId: "student-1", status: "PRESENT" }],
+          records: [{
+            enrollmentId: "student-1",
+            status: "PRESENT",
+            recordedAt: new Date("2026-08-01T08:05:00Z"),
+            ipAddress: null,
+            deviceFingerprintHash: null,
+          }],
         },
         {
           id: "session-2",

@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/db";
 import { ApiError } from "@/lib/http/api-error";
+import { courseAccessWhere } from "@/lib/courses/permissions";
 import type {
   QrScanActionType,
   QrScanResult,
@@ -179,7 +180,7 @@ export async function getQrScanLogs(params: GetQrScanLogsParams) {
     // Fetch matchedUserIds for all students enrolled in teacher's courses
     // so that records with null courseId/sessionId (e.g. INVALID_QR) are still scoped
     const matchedEnrollments = await prisma.enrollment.findMany({
-      where: { course: { teacherId: params.teacherId }, matchedUserId: { not: null } },
+      where: { course: courseAccessWhere(params.teacherId, "REPORT_VIEW"), matchedUserId: { not: null } },
       select: { matchedUserId: true },
     });
     const enrolledUserIds = matchedEnrollments
@@ -189,9 +190,9 @@ export async function getQrScanLogs(params: GetQrScanLogsParams) {
     andConditions.push({
       OR: [
         // Record linked to a course taught by this teacher
-        { course: { teacherId: params.teacherId } },
+        { course: courseAccessWhere(params.teacherId, "REPORT_VIEW") },
         // Record linked to a session of a course taught by this teacher
-        { session: { course: { teacherId: params.teacherId } } },
+        { session: { course: courseAccessWhere(params.teacherId, "REPORT_VIEW") } },
         // Record where course could not be determined (e.g. INVALID_QR before course lookup),
         // but user is enrolled in one of teacher's courses
         ...(enrolledUserIds.length > 0
@@ -204,7 +205,7 @@ export async function getQrScanLogs(params: GetQrScanLogsParams) {
   if (params.courseId) {
     andConditions.push({
       courseId: params.courseId,
-      ...(params.teacherId ? { course: { teacherId: params.teacherId } } : {}),
+      ...(params.teacherId ? { course: courseAccessWhere(params.teacherId, "REPORT_VIEW") } : {}),
     });
   }
 
@@ -280,8 +281,8 @@ export async function getQrScanLogs(params: GetQrScanLogsParams) {
       where: params.teacherId
         ? {
             OR: [
-              { course: { teacherId: params.teacherId } },
-              { session: { course: { teacherId: params.teacherId } } },
+              { course: courseAccessWhere(params.teacherId, "REPORT_VIEW") },
+              { session: { course: courseAccessWhere(params.teacherId, "REPORT_VIEW") } },
             ],
           }
         : {},

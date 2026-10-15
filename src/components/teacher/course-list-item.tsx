@@ -12,6 +12,7 @@ type CourseListItemProps = {
     name: string;
     code: string;
     hasActiveSession: boolean;
+    allAttendanceSessionCount: number;
     plannedSessionCount: number;
     weeklySessionCount: number;
     totalWeeks: number;
@@ -99,7 +100,13 @@ export function CourseListItem({ course }: CourseListItemProps) {
         >
           Ayarlar
         </Link>
-        <DeleteCourseButton courseId={course.id} />
+        <DeleteCourseButton
+          courseId={course.id}
+          courseCode={course.code}
+          courseName={course.name}
+          attendanceSessionCount={course.allAttendanceSessionCount}
+          enrollmentCount={course._count.enrollments}
+        />
       </div>
     </article>
   );

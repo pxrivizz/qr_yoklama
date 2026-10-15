@@ -33,6 +33,9 @@ type AdminOverviewProps = {
 
 const actionLabels: Record<string, string> = {
   ADMIN_CREATED: "Yönetici hesabı oluşturuldu",
+  ADMIN_ROLE_GRANTED: "Yönetici yetkisi verildi",
+  ADMIN_ROLE_REVOKED: "Yönetici yetkisi kaldırıldı",
+  ADMIN_DELETED: "Yönetici hesabı silindi",
   TEACHER_CREATED: "Öğretmen hesabı oluşturuldu",
   TEACHER_DELETED: "Öğretmen hesabı silindi",
   TEACHER_PASSWORD_RESET: "Öğretmen şifresi yenilendi",

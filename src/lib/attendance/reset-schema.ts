@@ -6,6 +6,7 @@ export const resetAttendanceSessionSchema = z
     confirmation: z.literal("SIFIRLA", {
       error: "Devam etmek için SIFIRLA yazın.",
     }),
+    reason: z.string().trim().min(5, "İptal nedenini en az 5 karakterle açıklayın.").max(500),
   })
   .strict();
 

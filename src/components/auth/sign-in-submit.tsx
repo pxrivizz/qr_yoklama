@@ -31,7 +31,7 @@ export function SignInSubmit() {
           <div className="signin-transition__mark" aria-hidden="true">
             <span className="signin-transition__orbit" />
             <span className="signin-transition__logo">
-              <BrandMark className="size-14" />
+              <BrandMark className="size-14" variant="sidebar" />
             </span>
           </div>
           <div className="relative text-center">

@@ -20,7 +20,10 @@ export const createAdminSchema = z
   .object({
     name: z.string().trim().min(2, "Ad soyad en az 2 karakter olmalıdır.").max(120),
     email: z.string().trim().toLowerCase().pipe(z.email("Geçerli bir e-posta adresi girin.")),
-    temporaryPassword: strongPasswordSchema,
+    temporaryPassword: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      strongPasswordSchema.optional(),
+    ),
   })
   .strict();
 
@@ -29,6 +32,10 @@ export const resetTeacherPasswordSchema = z
   .strict();
 
 export const deleteTeacherSchema = z
+  .object({ confirmationEmail: z.string().trim().toLowerCase().pipe(z.email()) })
+  .strict();
+
+export const deleteAdminSchema = z
   .object({ confirmationEmail: z.string().trim().toLowerCase().pipe(z.email()) })
   .strict();
 

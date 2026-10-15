@@ -10,6 +10,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/ui/icons";
 import { getTeacherCourse } from "@/lib/courses/service";
 import { requireTeacher } from "@/lib/auth/authorization";
+import { CourseMembersManager } from "@/components/teacher/course-members-manager";
 
 type PageProps = {
   params: Promise<{ courseId: string }>;
@@ -22,6 +23,10 @@ export default async function CourseSettingsPage({ params }: PageProps) {
   const course = await getTeacherCourse(teacher.id, courseId);
 
   if (!course) redirect("/ogretmen");
+
+  const currentRole = course.members.find((member) => member.user.id === teacher.id)?.role;
+  const canManageCourse = currentRole === "OWNER" || currentRole === "INSTRUCTOR";
+  const canManageAttendance = canManageCourse || currentRole === "ASSISTANT";
 
   return (
     <TeacherLayout
@@ -42,14 +47,16 @@ export default async function CourseSettingsPage({ params }: PageProps) {
             <ButtonLink href={`/ogretmen/ders/${course.id}/rapor`} variant="secondary">
               Yoklama raporu
             </ButtonLink>
-            <ButtonLink href={`/ogretmen/ders/${course.id}/ogrenciler`} variant="secondary">
-              Öğrenci listesi
-            </ButtonLink>
-            {course.hasActiveSession ? (
+            {canManageAttendance && (
+              <ButtonLink href={`/ogretmen/ders/${course.id}/ogrenciler`} variant="secondary">
+                Öğrenci listesi
+              </ButtonLink>
+            )}
+            {canManageAttendance && course.hasActiveSession ? (
               <ButtonLink href={`/ogretmen/ders/${course.id}/yoklama`}>
                 Yoklamaya dön
               </ButtonLink>
-            ) : (
+            ) : canManageAttendance ? (
               <AttendanceStartModal
                 courseId={course.id}
                 courseName={course.name}
@@ -59,31 +66,51 @@ export default async function CourseSettingsPage({ params }: PageProps) {
                 weeklySessionCount={course.weeklySessionCount}
                 completedSessions={course.completedSessions}
               />
+            ) : null}
+            {canManageAttendance && (
+              <ButtonLink href={`/ogretmen/ders/${course.id}/manuel`} variant="secondary">
+                Manuel yoklama
+              </ButtonLink>
             )}
-            <ButtonLink href={`/ogretmen/ders/${course.id}/manuel`} variant="secondary">
-              Manuel yoklama
-            </ButtonLink>
           </div>
         </div>
 
         <div className="mt-7 grid gap-6">
+          {canManageCourse && (
+            <Card className="p-5 sm:p-6">
+              <h2 className="font-h3 text-h3 text-on-surface">Ders ayarları</h2>
+              <p className="mt-1 font-body-md text-body-md text-on-surface-variant">Konum, ağ kuralları ve oturum planlaması.</p>
+              <div className="mt-6">
+                <CourseForm course={course} />
+              </div>
+            </Card>
+          )}
+
           <Card className="p-5 sm:p-6">
-            <h2 className="font-h3 text-h3 text-on-surface">Ders ayarları</h2>
-            <p className="mt-1 font-body-md text-body-md text-on-surface-variant">Konum, ağ kuralları ve oturum planlaması.</p>
+            <h2 className="font-h3 text-h3 text-on-surface">Ders ekibi</h2>
+            <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
+              Bu derse öğretim elemanı veya asistan ekleyin.
+            </p>
             <div className="mt-6">
-              <CourseForm course={course} />
+              <CourseMembersManager
+                courseId={course.id}
+                currentUserId={teacher.id}
+                initialMembers={course.members}
+              />
             </div>
           </Card>
 
-          <Card className="p-5 sm:p-6">
-            <h2 className="font-h3 text-h3 text-on-surface">Öğrenci listesi</h2>
-            <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
-              Excel dosyasından öğrenci kayıtlarını içe aktarın. Mevcut kayıtlar güncellenir.
-            </p>
-            <div className="mt-6">
-              <EnrollmentImport courseId={course.id} />
-            </div>
-          </Card>
+          {canManageAttendance && (
+            <Card className="p-5 sm:p-6">
+              <h2 className="font-h3 text-h3 text-on-surface">Öğrenci listesi</h2>
+              <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
+                Excel dosyasından öğrenci kayıtlarını içe aktarın. Mevcut kayıtlar güncellenir.
+              </p>
+              <div className="mt-6">
+                <EnrollmentImport courseId={course.id} />
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </TeacherLayout>

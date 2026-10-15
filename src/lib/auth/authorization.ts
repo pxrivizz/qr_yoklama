@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { ApiError } from "@/lib/http/api-error";
 import { getActiveImpersonation } from "@/lib/auth/impersonation";
+import { resolveRequestRole } from "@/lib/auth/role-policy";
 
 export async function requireUser() {
   const session = await auth();
@@ -13,14 +14,19 @@ export async function requireUser() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, name: true, email: true, role: true, schoolNumber: true, image: true },
+    select: { id: true, name: true, email: true, roles: true, schoolNumber: true, image: true },
   });
 
   if (!user) {
     throw new ApiError(401, "USER_NOT_FOUND", "Kullanıcı hesabı bulunamadı.");
   }
 
-  return user;
+  const role = resolveRequestRole(user.roles, session.user.role);
+  if (!role) {
+    throw new ApiError(403, "ROLE_REVOKED", "Bu oturumun rol yetkisi kaldırılmış.");
+  }
+
+  return { ...user, role };
 }
 
 export async function requireTeacher() {
@@ -32,10 +38,10 @@ export async function requireTeacher() {
     const impersonation = await getActiveImpersonation(user.id);
     if (impersonation) {
       const teacher = await prisma.user.findFirst({
-        where: { id: impersonation.teacherId, role: "TEACHER" },
-        select: { id: true, name: true, email: true, role: true, schoolNumber: true, image: true },
+        where: { id: impersonation.teacherId, roles: { has: "TEACHER" } },
+        select: { id: true, name: true, email: true, roles: true, schoolNumber: true, image: true },
       });
-      if (teacher) return teacher;
+      if (teacher) return { ...teacher, role: "TEACHER" as const };
     }
   }
 

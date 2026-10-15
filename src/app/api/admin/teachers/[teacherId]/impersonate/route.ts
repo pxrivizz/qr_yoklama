@@ -19,7 +19,7 @@ export async function POST(request: Request, context: RouteContext) {
     const { teacherId } = await context.params;
     enforceRateLimit(`admin-impersonate:${admin.id}`, { limit: 20, windowMs: 60_000 });
     const teacher = await prisma.user.findFirst({
-      where: { id: teacherId, role: "TEACHER" },
+      where: { id: teacherId, roles: { has: "TEACHER" } },
       select: { id: true, name: true, email: true },
     });
     if (!teacher) throw new ApiError(404, "TEACHER_NOT_FOUND", "Öğretmen bulunamadı.");

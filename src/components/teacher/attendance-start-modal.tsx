@@ -79,6 +79,7 @@ export function AttendanceStartModal({
   const [resetting, setResetting] = useState(false);
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const [resetConfirmation, setResetConfirmation] = useState("");
+  const [resetReason, setResetReason] = useState("");
   const [removedSessionIds, setRemovedSessionIds] = useState<string[]>([]);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [error, setError] = useState<{ code?: string; message: string }>();
@@ -155,6 +156,7 @@ export function AttendanceStartModal({
         body: JSON.stringify({
           sessionId: selectedCompletedSession.id,
           confirmation: resetConfirmation,
+          reason: resetReason.trim(),
         }),
       });
       const body = (await response.json()) as { error?: { code?: string; message?: string } };
@@ -168,6 +170,7 @@ export function AttendanceStartModal({
 
       setRemovedSessionIds((current) => [...current, selectedCompletedSession.id]);
       setResetConfirmation("");
+      setResetReason("");
       setShowResetConfirmation(false);
       setResetSuccess(true);
       router.refresh();
@@ -307,7 +310,7 @@ export function AttendanceStartModal({
                 Bu oturumun yoklamasını sıfırla
               </h3>
               <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
-                {selectionLabel} için alınmış yoklama ve ilişkili kayıtlar kalıcı olarak silinir.
+                {selectionLabel} iptal edilir; kayıtlar denetim amacıyla korunur ve bu yuva yeniden kullanılabilir.
               </p>
               {!showResetConfirmation ? (
                 <Button
@@ -331,15 +334,27 @@ export function AttendanceStartModal({
                       className="mt-2 min-h-11 w-full rounded-lg border border-red-300 bg-white px-3 text-sm text-on-surface outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
                     />
                   </label>
+                  <label className="mt-3 block text-sm font-medium text-red-950">
+                    İptal nedeni
+                    <textarea
+                      value={resetReason}
+                      onChange={(event) => setResetReason(event.target.value)}
+                      minLength={5}
+                      maxLength={500}
+                      placeholder="Örn. Yanlış hafta seçildi."
+                      className="mt-2 min-h-20 w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm text-on-surface outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                    />
+                  </label>
                   <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <Button type="button" variant="secondary" size="sm" onClick={() => {
                       setShowResetConfirmation(false);
                       setResetConfirmation("");
+                      setResetReason("");
                     }} disabled={resetting}>
                       İptal
                     </Button>
-                    <Button type="button" variant="critical" size="sm" onClick={() => void resetSelectedAttendanceSession()} disabled={resetting || resetConfirmation !== "SIFIRLA"}>
-                      {resetting ? "Sıfırlanıyor…" : "Bu Oturumu Sıfırla"}
+                    <Button type="button" variant="critical" size="sm" onClick={() => void resetSelectedAttendanceSession()} disabled={resetting || resetConfirmation !== "SIFIRLA" || resetReason.trim().length < 5}>
+                      {resetting ? "İptal ediliyor…" : "Bu Oturumu İptal Et"}
                     </Button>
                   </div>
                 </div>

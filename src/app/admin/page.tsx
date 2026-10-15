@@ -61,7 +61,7 @@ export default async function AdminPage() {
         <section id="yoneticiler" className="scroll-mt-24 border-t border-neutral-200 pt-10">
           <div className="mb-7 max-w-2xl">
             <h2 className="font-h1 text-h1 text-on-surface">Yönetici erişimi</h2>
-            <p className="mt-2 text-on-surface-variant">Yeni yönetici hesabı oluşturun ve tam yetkili hesapları tek noktadan takip edin.</p>
+            <p className="mt-2 text-on-surface-variant">Kullanıcılara yönetici rolü verin ve tam yetkili hesapları tek noktadan yönetin.</p>
           </div>
           <AdminAccountManager currentAdminId={admin.id} initialAdmins={admins} />
         </section>

@@ -14,7 +14,7 @@ import {
 } from "@/lib/attendance/slot";
 import { cn } from "@/lib/cn";
 
-type AttendanceStatus = "PRESENT" | "ABSENT";
+type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
 type AttendanceSession = {
   id: string;
   status: "ACTIVE" | "CLOSED";
@@ -34,6 +34,8 @@ type Enrollment = {
 const options: Array<{ value: AttendanceStatus; label: string; activeClass: string }> = [
   { value: "PRESENT", label: "Var", activeClass: "border-secondary bg-secondary text-on-secondary" },
   { value: "ABSENT", label: "Yok", activeClass: "border-error bg-error text-on-error" },
+  { value: "LATE", label: "Geç", activeClass: "border-warning bg-warning text-on-warning" },
+  { value: "EXCUSED", label: "Mazeretli", activeClass: "border-tertiary bg-tertiary text-on-tertiary" },
 ];
 
 export function ManualAttendanceForm({
@@ -71,6 +73,7 @@ export function ManualAttendanceForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
   const [success, setSuccess] = useState(false);
+  const [correctionReason, setCorrectionReason] = useState("");
   const [weekNumber, setWeekNumber] = useState(initialWeekNumber);
   const [sessionIndexInWeek, setSessionIndexInWeek] = useState(
     Math.min(initialSessionIndex, weeklySessionCount),
@@ -86,7 +89,7 @@ export function ManualAttendanceForm({
     () =>
       Object.values(records).reduce(
         (result, status) => ({ ...result, [status]: result[status] + 1 }),
-        { PRESENT: 0, ABSENT: 0 },
+        { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0 },
       ),
     [records],
   );
@@ -175,6 +178,10 @@ export function ManualAttendanceForm({
       setError("Seçilen gün için ders tanımlanmamış.");
       return;
     }
+    if (selectedSession && correctionReason.trim().length < 5) {
+      setError("Mevcut bir yoklamayı değiştirirken en az 5 karakterlik düzeltme nedeni yazın.");
+      return;
+    }
     setPending(true);
     setError(undefined);
     setSuccess(false);
@@ -190,6 +197,7 @@ export function ManualAttendanceForm({
             enrollmentId: enrollment.id,
             status: records[enrollment.id],
           })),
+          ...(selectedSession ? { correctionReason: correctionReason.trim() } : {}),
         }),
       });
       const body = (await response.json()) as {
@@ -208,6 +216,7 @@ export function ManualAttendanceForm({
         });
       }
       setSuccess(true);
+      setCorrectionReason("");
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Manuel yoklama kaydedilemedi.");
@@ -265,6 +274,10 @@ export function ManualAttendanceForm({
           <strong className="text-secondary">{counts.PRESENT} var</strong>
           <span aria-hidden="true"> · </span>
           <strong className="text-error">{counts.ABSENT} yok</strong>
+          <span aria-hidden="true"> · </span>
+          <strong>{counts.LATE} geç</strong>
+          <span aria-hidden="true"> · </span>
+          <strong>{counts.EXCUSED} mazeretli</strong>
         </p>
         <div className="flex items-center gap-2 font-label-sm text-label-sm">
           <span className="text-on-surface-variant">Tümünü:</span>
@@ -339,6 +352,24 @@ export function ManualAttendanceForm({
             ))}
           </TableBody>
         </Table>
+      )}
+
+      {selectedSession && (
+        <div className="border-t border-outline-variant bg-surface-container-low px-6 py-4">
+          <label className="font-label-sm text-label-sm text-on-surface">
+            Düzeltme nedeni
+            <textarea
+              value={correctionReason}
+              onChange={(event) => setCorrectionReason(event.target.value)}
+              minLength={5}
+              maxLength={500}
+              required
+              disabled={pending || loadingSlot}
+              placeholder="Örn. Öğrencinin mazeret belgesi doğrulandı."
+              className="mt-1.5 min-h-20 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 font-body-md text-body-md"
+            />
+          </label>
+        </div>
       )}
 
       <div className="sticky bottom-0 flex flex-col gap-3 border-t border-outline-variant bg-surface-container-lowest/95 px-6 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between">

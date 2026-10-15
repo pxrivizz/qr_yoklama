@@ -21,6 +21,7 @@ const logsQuerySchema = z.object({
     (value) => (value === "" || value === null ? undefined : value),
     z.enum([
       "SUCCESS",
+      "FLAGGED",
       "INVALID_QR",
       "EXPIRED_QR",
       "DUPLICATE_SCAN",

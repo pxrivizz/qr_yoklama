@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/ui/icons";
+import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/cn";
 
 export type NotificationData = {
@@ -41,6 +43,7 @@ export function StudentNotifications({ initialUnreadCount = 0 }: StudentNotifica
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [isLoading, setIsLoading] = useState(false);
+  const [attendancePopup, setAttendancePopup] = useState<NotificationData>();
   const mounted = useSyncExternalStore(
     () => () => undefined,
     () => true,
@@ -48,6 +51,7 @@ export function StudentNotifications({ initialUnreadCount = 0 }: StudentNotifica
   );
   const [, startTransition] = useTransition();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const popupSeenRef = useRef(new Set<string>());
 
   async function fetchNotifications() {
     setIsLoading(true);
@@ -56,8 +60,25 @@ export function StudentNotifications({ initialUnreadCount = 0 }: StudentNotifica
       if (res.ok) {
         const json = await res.json();
         if (json.data) {
-          setNotifications(json.data.notifications);
+          const nextNotifications = json.data.notifications as NotificationData[];
+          setNotifications(nextNotifications);
           setUnreadCount(json.data.unreadCount);
+
+          const latestAttendance = nextNotifications.find((item) =>
+            item.type === "ATTENDANCE_STARTED" && !item.isRead && item.courseId,
+          );
+          if (latestAttendance && !popupSeenRef.current.has(latestAttendance.id)) {
+            popupSeenRef.current.add(latestAttendance.id);
+            const storageKey = `attendance-popup:${latestAttendance.id}`;
+            let alreadyShown = false;
+            try {
+              alreadyShown = window.sessionStorage.getItem(storageKey) === "shown";
+              if (!alreadyShown) window.sessionStorage.setItem(storageKey, "shown");
+            } catch {
+              // Bellek erişimi kapalıysa aynı sayfa oturumundaki ref koruması yeterlidir.
+            }
+            if (!alreadyShown) setAttendancePopup(latestAttendance);
+          }
         }
       }
     } catch (err) {
@@ -127,18 +148,28 @@ export function StudentNotifications({ initialUnreadCount = 0 }: StudentNotifica
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
       setIsOpen(false);
-      await fetch("/api/student/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
+      setAttendancePopup((current) => current?.id === id ? undefined : current);
+        await fetch("/api/student/notifications", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+          keepalive: true,
+        });
     } catch {
       // Ignore
     }
   }
 
+  function closeAttendancePopup() {
+    if (!attendancePopup) return;
+    const notificationId = attendancePopup.id;
+    setAttendancePopup(undefined);
+    void handleNotificationClick(notificationId);
+  }
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <>
+      <div className="relative" ref={dropdownRef}>
       <button
         type="button"
         onClick={handleToggle}
@@ -246,6 +277,50 @@ export function StudentNotifications({ initialUnreadCount = 0 }: StudentNotifica
           </div>
         </div>
       )}
-    </div>
+      </div>
+
+      <Modal
+        open={Boolean(attendancePopup)}
+        onClose={closeAttendancePopup}
+        title="Yoklama başladı"
+        description={attendancePopup?.course
+          ? `${attendancePopup.course.code} · ${attendancePopup.course.name}`
+          : attendancePopup?.title}
+        className="max-w-md"
+      >
+        <div className="grid gap-5">
+          <div className="flex items-start gap-3 rounded-xl border border-secondary/25 bg-secondary-container/45 p-4">
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-secondary text-on-secondary">
+              <MaterialIcon name="notifications_active" />
+            </span>
+            <div>
+              <p className="font-label-lg text-label-lg text-on-surface">
+                QR kodunu okutmaya hazırlanın
+              </p>
+              <p className="mt-1 font-body-md text-body-md leading-6 text-on-surface-variant">
+                Önce <strong>eduroam veya okul Wi-Fi ağına</strong> bağlı olduğunuzu kontrol edin.
+                Ardından ders sayfasından yoklamaya katılın.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" onClick={closeAttendancePopup}>
+              Kapat
+            </Button>
+            {attendancePopup?.courseId && (
+              <Link
+                href={`/ogrenci/ders/${attendancePopup.courseId}`}
+                onClick={() => void handleNotificationClick(attendancePopup.id)}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 font-label-sm text-label-sm text-white transition-colors hover:bg-neutral-800 focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+              >
+                <MaterialIcon name="qr_code_scanner" />
+                Yoklamaya Git
+              </Link>
+            )}
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }

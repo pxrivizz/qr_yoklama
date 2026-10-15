@@ -19,8 +19,8 @@ export async function getAdminDashboardOverview() {
     recentAttendanceCount,
     recentActivity,
   ] = await Promise.all([
-    prisma.user.count({ where: { role: "TEACHER" } }),
-    prisma.user.count({ where: { role: "STUDENT" } }),
+    prisma.user.count({ where: { roles: { has: "TEACHER" } } }),
+    prisma.user.count({ where: { roles: { has: "STUDENT" } } }),
     prisma.course.count(),
     prisma.enrollment.count(),
     prisma.enrollment.count({ where: { matchedUserId: { not: null } } }),
@@ -53,7 +53,7 @@ export async function getAdminDashboardOverview() {
 
 export async function listTeachers() {
   const teachers = await prisma.user.findMany({
-    where: { role: "TEACHER" },
+    where: { roles: { has: "TEACHER" } },
     orderBy: [{ name: "asc" }, { email: "asc" }],
     select: {
       id: true,
@@ -72,7 +72,7 @@ export async function listTeachers() {
 
 export async function listAdmins() {
   const admins = await prisma.user.findMany({
-    where: { role: "ADMIN" },
+    where: { roles: { has: "ADMIN" } },
     orderBy: [{ name: "asc" }, { email: "asc" }],
     select: {
       id: true,
@@ -95,17 +95,60 @@ export async function createAdmin(
   context: RequestContext,
 ) {
   const existing = await prisma.user.findUnique({ where: { email: input.email } });
-  if (existing) {
-    throw new ApiError(409, "EMAIL_ALREADY_EXISTS", "Bu e-posta adresi zaten kullanılıyor.");
+  if (existing?.roles.includes("ADMIN")) {
+    throw new ApiError(409, "ADMIN_ROLE_EXISTS", "Bu hesap zaten yönetici yetkisine sahip.");
   }
 
-  const passwordHash = await hashPassword(input.temporaryPassword);
+  const passwordHash = input.temporaryPassword
+    ? await hashPassword(input.temporaryPassword)
+    : undefined;
   return prisma.$transaction(async (tx) => {
+    if (existing) {
+      if (!existing.passwordHash && !passwordHash) {
+        throw new ApiError(
+          422,
+          "TEMPORARY_PASSWORD_REQUIRED",
+          "Parolası olmayan mevcut hesap için geçici şifre girin.",
+        );
+      }
+      const admin = await tx.user.update({
+        where: { id: existing.id },
+        data: {
+          roles: { push: "ADMIN" },
+          passwordHash: existing.passwordHash ?? passwordHash,
+          passwordChangedAt: existing.passwordChangedAt ?? new Date(),
+          authVersion: { increment: 1 },
+        },
+        select: { id: true, name: true, email: true, createdAt: true },
+      });
+      await tx.session.deleteMany({ where: { userId: existing.id } });
+      await tx.auditLog.create({
+        data: {
+          actorId: actorAdminId,
+          action: "ADMIN_ROLE_GRANTED",
+          entityType: "User",
+          entityId: admin.id,
+          before: { roles: existing.roles },
+          after: { roles: [...existing.roles, "ADMIN"] },
+          ...context,
+        },
+      });
+      return admin;
+    }
+
+    if (!passwordHash) {
+      throw new ApiError(
+        422,
+        "TEMPORARY_PASSWORD_REQUIRED",
+        "Yeni yönetici hesabı için geçici şifre girin.",
+      );
+    }
+
     const admin = await tx.user.create({
       data: {
         name: input.name,
         email: input.email,
-        role: "ADMIN",
+        roles: ["ADMIN"],
         emailVerified: new Date(),
         passwordHash,
         passwordChangedAt: new Date(),
@@ -119,7 +162,7 @@ export async function createAdmin(
         action: "ADMIN_CREATED",
         entityType: "User",
         entityId: admin.id,
-        after: { name: admin.name, email: admin.email, role: "ADMIN" },
+        after: { name: admin.name, email: admin.email, roles: ["ADMIN"] },
         ...context,
       },
     });
@@ -144,7 +187,7 @@ export async function createTeacher(
       data: {
         name: input.name,
         email: input.email,
-        role: "TEACHER",
+        roles: ["TEACHER"],
         emailVerified: new Date(),
         passwordHash,
         passwordChangedAt: new Date(),
@@ -158,12 +201,90 @@ export async function createTeacher(
         action: "TEACHER_CREATED",
         entityType: "User",
         entityId: teacher.id,
-        after: { name: teacher.name, email: teacher.email, role: "TEACHER" },
+        after: { name: teacher.name, email: teacher.email, roles: ["TEACHER"] },
         ...context,
       },
     });
     return teacher;
   });
+}
+
+export async function removeAdminAccess(
+  actorAdminId: string,
+  targetAdminId: string,
+  confirmationEmail: string,
+  context: RequestContext,
+) {
+  if (actorAdminId === targetAdminId) {
+    throw new ApiError(409, "CANNOT_REMOVE_SELF", "Kendi yönetici yetkinizi kaldıramazsınız.");
+  }
+
+  const target = await prisma.user.findFirst({
+    where: { id: targetAdminId, roles: { has: "ADMIN" } },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      roles: true,
+      _count: {
+        select: {
+          taughtCourses: true,
+          createdSessions: true,
+          bugReports: true,
+          bugReportResponses: true,
+        },
+      },
+    },
+  });
+  if (!target) throw new ApiError(404, "ADMIN_NOT_FOUND", "Yönetici hesabı bulunamadı.");
+  if (target.email.toLowerCase() !== confirmationEmail) {
+    throw new ApiError(422, "CONFIRMATION_MISMATCH", "Onay e-postası yönetici hesabıyla eşleşmiyor.");
+  }
+
+  const adminCount = await prisma.user.count({ where: { roles: { has: "ADMIN" } } });
+  if (adminCount <= 1) {
+    throw new ApiError(409, "LAST_ADMIN", "Sistemdeki son yönetici kaldırılamaz.");
+  }
+
+  const remainingRoles = target.roles.filter((role) => role !== "ADMIN");
+  const hasRestrictedHistory =
+    target._count.taughtCourses > 0 ||
+    target._count.createdSessions > 0 ||
+    target._count.bugReports > 0 ||
+    target._count.bugReportResponses > 0;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.session.deleteMany({ where: { userId: target.id } });
+
+    if (remainingRoles.length > 0) {
+      await tx.user.update({
+        where: { id: target.id },
+        data: { roles: remainingRoles, authVersion: { increment: 1 } },
+      });
+    } else if (hasRestrictedHistory) {
+      throw new ApiError(
+        409,
+        "ADMIN_HAS_RELATED_DATA",
+        "Bu yöneticiye bağlı ders veya destek kaydı bulunduğu için hesap silinemedi.",
+      );
+    } else {
+      await tx.user.delete({ where: { id: target.id } });
+    }
+
+    await tx.auditLog.create({
+      data: {
+        actorId: actorAdminId,
+        action: remainingRoles.length > 0 ? "ADMIN_ROLE_REVOKED" : "ADMIN_DELETED",
+        entityType: "User",
+        entityId: target.id,
+        before: { name: target.name, email: target.email, roles: target.roles },
+        after: remainingRoles.length > 0 ? { roles: remainingRoles } : undefined,
+        ...context,
+      },
+    });
+  });
+
+  return { deleted: remainingRoles.length === 0, roles: remainingRoles };
 }
 
 export async function resetTeacherPassword(
@@ -173,7 +294,7 @@ export async function resetTeacherPassword(
   context: RequestContext,
 ) {
   const teacher = await prisma.user.findFirst({
-    where: { id: teacherId, role: "TEACHER" },
+    where: { id: teacherId, roles: { has: "TEACHER" } },
     select: { id: true, email: true },
   });
   if (!teacher) throw new ApiError(404, "TEACHER_NOT_FOUND", "Öğretmen bulunamadı.");
@@ -205,11 +326,12 @@ export async function deleteTeacher(
   context: RequestContext,
 ) {
   const teacher = await prisma.user.findFirst({
-    where: { id: teacherId, role: "TEACHER" },
+    where: { id: teacherId, roles: { has: "TEACHER" } },
     select: {
       id: true,
       email: true,
       name: true,
+      roles: true,
       taughtCourses: {
         select: {
           id: true,
@@ -219,6 +341,13 @@ export async function deleteTeacher(
     },
   });
   if (!teacher) throw new ApiError(404, "TEACHER_NOT_FOUND", "Öğretmen bulunamadı.");
+  if (teacher.roles.length > 1) {
+    throw new ApiError(
+      409,
+      "MULTI_ROLE_ACCOUNT",
+      "Birden fazla role sahip hesap öğretmen listesinden silinemez. Önce yalnızca öğretmen rolünü kaldırın.",
+    );
+  }
   if (teacher.email.toLowerCase() !== confirmationEmail) {
     throw new ApiError(422, "CONFIRMATION_MISMATCH", "Onay e-postası öğretmen hesabıyla eşleşmiyor.");
   }

@@ -10,6 +10,8 @@ import { verifyQrToken } from "@/lib/attendance/qr-token";
 import type { AttendanceScanInput } from "@/lib/attendance/scan-schema";
 import { createQrScanLog } from "@/lib/attendance/qr-log-service";
 import { deriveSessionDeviceFingerprint } from "@/lib/attendance/device-identity";
+import { resolveAttendancePolicy } from "@/lib/attendance/policy";
+import { scanAttendanceStatus } from "@/lib/attendance/status";
 
 async function resolveToken(token: string) {
   let claims;
@@ -134,6 +136,7 @@ export async function recordAttendanceScan(
   const { claims, tokenRecord } = resolved;
   const attendanceSession = tokenRecord.session;
   const course = attendanceSession.course;
+  const policy = resolveAttendancePolicy(attendanceSession.policySnapshot);
   const className = `${course.code} · ${course.name}`;
   const deviceFingerprintHash = deriveSessionDeviceFingerprint(
     deviceId,
@@ -172,7 +175,7 @@ export async function recordAttendanceScan(
     );
   }
 
-  if (!student?.image) {
+  if (!student?.image && policy.photoMode === "REQUIRED") {
     await createQrScanLog({
       ...baseLogData,
       result: "PHOTO_REQUIRED",
@@ -184,9 +187,8 @@ export async function recordAttendanceScan(
       "Yoklama alabilmek için profil fotoğrafı yüklemeniz zorunludur. Lütfen öğrenci panelinizden profil fotoğrafınızı ekleyin.",
     );
   }
-
   const enrollment = await prisma.enrollment.findFirst({
-    where: { courseId: attendanceSession.courseId, matchedUserId: studentId },
+    where: { courseId: attendanceSession.courseId, matchedUserId: studentId, archivedAt: null },
     select: { id: true },
   });
   if (!enrollment) {
@@ -261,12 +263,14 @@ export async function recordAttendanceScan(
     },
     select: { id: true },
   });
-  if (conflictingDeviceRecord) {
+  if (conflictingDeviceRecord && policy.deviceMode === "REQUIRED") {
     await rejectDeviceReuse();
   }
-
   const hasIpRestrictions = attendanceSession.allowedIpRanges.length > 0;
-  if (hasIpRestrictions && (!ipAddress || !isIpAllowed(ipAddress, attendanceSession.allowedIpRanges))) {
+  const networkInvalid = policy.networkMode !== "DISABLED" && (
+    !hasIpRestrictions || !ipAddress || !isIpAllowed(ipAddress, attendanceSession.allowedIpRanges)
+  );
+  if (networkInvalid && policy.networkMode === "REQUIRED") {
     await prisma.attendanceAttempt.create({
       data: {
         sessionId: attendanceSession.id,
@@ -294,13 +298,15 @@ export async function recordAttendanceScan(
       "Okul ağında değilsiniz. Okul Wi-Fi ağına bağlanıp tekrar deneyin.",
     );
   }
-
-  const location = isWithinAllowedRadius(
-    { latitude: attendanceSession.schoolLat, longitude: attendanceSession.schoolLng },
-    { latitude: input.latitude, longitude: input.longitude },
-    attendanceSession.allowedRadiusMeters,
-  );
-  if (!location.allowed) {
+  const hasCoordinates = input.latitude !== undefined && input.longitude !== undefined;
+  const location = hasCoordinates
+    ? isWithinAllowedRadius(
+        { latitude: attendanceSession.schoolLat, longitude: attendanceSession.schoolLng },
+        { latitude: input.latitude!, longitude: input.longitude! },
+        attendanceSession.allowedRadiusMeters,
+      )
+    : { allowed: false, distanceMeters: null };
+  if (!location.allowed && policy.locationMode === "REQUIRED") {
     await prisma.attendanceAttempt.create({
       data: {
         sessionId: attendanceSession.id,
@@ -330,16 +336,63 @@ export async function recordAttendanceScan(
       "Okul konumunda değilsiniz. Okul binasına yaklaşıp konum iznini açık tutarak tekrar deneyin.",
     );
   }
+  const inaccurateLocation = policy.locationMode !== "DISABLED" &&
+    policy.maxLocationAccuracyMeters !== null &&
+    (input.accuracyMeters === undefined || input.accuracyMeters > policy.maxLocationAccuracyMeters);
+  if (inaccurateLocation && policy.locationMode === "REQUIRED") {
+    await prisma.attendanceAttempt.create({
+      data: {
+        sessionId: attendanceSession.id,
+        enrollmentId: enrollment.id,
+        studentId,
+        tokenNonceHash: tokenRecord.nonceHash,
+        ipAddress,
+        latitude: input.latitude,
+        longitude: input.longitude,
+        accuracyMeters: input.accuracyMeters,
+        distanceMeters: location.distanceMeters,
+        deviceFingerprintHash,
+        status: "REJECTED",
+        reasonCode: "LOCATION_ACCURACY_REQUIRED",
+      },
+    });
+    await createQrScanLog({
+      ...baseLogData,
+      enrollmentId: enrollment.id,
+      distanceMeters: location.distanceMeters,
+      result: "OUT_OF_RADIUS",
+      resultMessage: "Konum doğruluğu tanımlanan sınırın altında kaldığı için yoklama reddedildi.",
+      metadata: { reasonCode: "LOCATION_ACCURACY_REQUIRED" },
+    });
+    throw new ApiError(
+      403,
+      "LOCATION_ACCURACY_REQUIRED",
+      "Konum doğruluğu yetersiz. Açık bir alana geçip konumu yenileyerek tekrar deneyin.",
+    );
+  }
+  const attendanceStatus = scanAttendanceStatus(
+    attendanceSession.startedAt,
+    policy.lateAfterMinutes,
+  );
 
   try {
     await prisma.$transaction(async (tx) => {
+      if (policy.deviceMode === "REQUIRED") {
+        await tx.attendanceDeviceClaim.create({
+          data: {
+            sessionId: attendanceSession.id,
+            deviceFingerprintHash,
+            enrollmentId: enrollment.id,
+          },
+        });
+      }
       await tx.attendanceRecord.create({
         data: {
           sessionId: attendanceSession.id,
           enrollmentId: enrollment.id,
           studentId,
           source: "QR_SCAN",
-          status: "PRESENT",
+          status: attendanceStatus,
           ipAddress,
           latitude: input.latitude,
           longitude: input.longitude,
@@ -392,7 +445,9 @@ export async function recordAttendanceScan(
     enrollmentId: enrollment.id,
     distanceMeters: location.distanceMeters,
     result: "SUCCESS",
-    resultMessage: "Yoklama başarıyla kaydedildi.",
+    resultMessage: attendanceStatus === "LATE"
+      ? "Yoklama geç katılım olarak kaydedildi."
+      : "Yoklama başarıyla kaydedildi.",
   });
 
   return {

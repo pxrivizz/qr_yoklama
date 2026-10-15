@@ -1,6 +1,8 @@
 import ipaddr from "ipaddr.js";
 import { z } from "zod";
 
+import { attendancePolicySchema } from "@/lib/attendance/policy";
+
 const cidrSchema = z
   .string()
   .trim()
@@ -38,6 +40,7 @@ const courseFields = {
   attendanceMode: z.enum(["STANDARD", "PREPARATORY"]),
   preparatoryDayPlans: z.array(preparatoryDayPlanSchema).max(7),
   mandatoryAlertLimit: z.number().int().min(1).max(100),
+  attendancePolicy: attendancePolicySchema.optional(),
 };
 
 function validateAttendanceMode(
@@ -45,6 +48,8 @@ function validateAttendanceMode(
     attendanceMode?: "STANDARD" | "PREPARATORY";
     preparatoryDayPlans?: Array<{ weekday: number; lessonCount: number }>;
     weeklySessionCount?: number;
+    allowedIpRanges?: string[];
+    attendancePolicy?: z.infer<typeof attendancePolicySchema>;
   },
   context: z.RefinementCtx,
 ) {
@@ -80,6 +85,18 @@ function validateAttendanceMode(
         message: "Hazırlık programında en az bir gün için ders sayısı girin.",
       });
     }
+  }
+  if (
+    value.attendancePolicy?.networkMode !== undefined &&
+    value.attendancePolicy.networkMode !== "DISABLED" &&
+    value.allowedIpRanges !== undefined &&
+    value.allowedIpRanges.length === 0
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["allowedIpRanges"],
+      message: "Ağ doğrulaması etkinken en az bir izin verilen IP aralığı girin.",
+    });
   }
 }
 

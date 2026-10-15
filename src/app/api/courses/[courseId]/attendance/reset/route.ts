@@ -18,14 +18,14 @@ export async function DELETE(request: Request, context: RouteContext) {
     });
     const input = resetAttendanceSessionSchema.parse(await readJsonBody(request));
 
-    const deleted = await resetAttendanceSession(
+    const voided = await resetAttendanceSession(
       teacher.id,
       courseId,
       input,
       getRequestContext(request),
     );
 
-    return Response.json({ data: { reset: true, deleted } });
+    return Response.json({ data: { reset: true, voided } });
   } catch (error) {
     return apiErrorResponse(error);
   }

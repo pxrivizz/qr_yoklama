@@ -16,6 +16,18 @@ enum UserRole {
 enum SessionStatus {
   ACTIVE
   CLOSED
+  VOIDED
+}
+
+enum CourseMemberRole {
+  OWNER
+  INSTRUCTOR
+  ASSISTANT
+}
+
+enum VerificationMode {
+  REQUIRED
+  DISABLED
 }
 
 enum SessionCreationSource {
@@ -60,6 +72,7 @@ enum QrScanActionType {
 
 enum QrScanResult {
   SUCCESS
+  FLAGGED
   INVALID_QR
   EXPIRED_QR
   DUPLICATE_SCAN
@@ -78,37 +91,40 @@ enum BugReportStatus {
 }
 
 model User {
-  id                 String              @id @default(cuid())
-  role               UserRole            @default(STUDENT)
-  name               String?
-  normalizedName     String?
-  email              String              @unique
-  emailVerified      DateTime?
-  image              String?
-  googleId           String?             @unique
-  schoolNumber       String?
-  passwordHash       String?
-  passwordChangedAt  DateTime?
-  authVersion        Int                 @default(0)
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  accounts           Account[]
-  sessions           Session[]
-  authenticators     Authenticator[]
-  taughtCourses      Course[]            @relation("CourseTeacher")
-  matchedEnrollments Enrollment[]        @relation("MatchedStudent")
-  createdSessions    AttendanceSession[] @relation("SessionCreator")
-  attendanceRecords  AttendanceRecord[]  @relation("RecordStudent")
-  manuallyEntered    AttendanceRecord[]  @relation("RecordEnteredBy")
-  attendanceAttempts AttendanceAttempt[]
-  auditLogs          AuditLog[]          @relation("AuditActor")
-  qrScanLogs         QrScanLog[]         @relation("UserScanLogs")
-  notifications      Notification[]
-  bugReports         BugReport[]         @relation("BugReporter")
-  handledBugReports  BugReport[]         @relation("BugReportHandler")
-  bugReportResponses BugReportResponse[] @relation("BugReportResponseAuthor")
+  id                  String               @id @default(cuid())
+  roles               UserRole[]           @default([STUDENT])
+  name                String?
+  normalizedName      String?
+  email               String               @unique
+  emailVerified       DateTime?
+  image               String?
+  googleId            String?              @unique
+  schoolNumber        String?
+  passwordHash        String?
+  passwordChangedAt   DateTime?
+  authVersion         Int                  @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  accounts            Account[]
+  sessions            Session[]
+  authenticators      Authenticator[]
+  taughtCourses       Course[]             @relation("CourseTeacher")
+  matchedEnrollments  Enrollment[]         @relation("MatchedStudent")
+  createdSessions     AttendanceSession[]  @relation("SessionCreator")
+  voidedSessions      AttendanceSession[]  @relation("SessionVoider")
+  attendanceRecords   AttendanceRecord[]   @relation("RecordStudent")
+  manuallyEntered     AttendanceRecord[]   @relation("RecordEnteredBy")
+  attendanceRevisions AttendanceRevision[] @relation("RevisionEditor")
+  courseMemberships   CourseMember[]
+  attendanceAttempts  AttendanceAttempt[]
+  auditLogs           AuditLog[]           @relation("AuditActor")
+  qrScanLogs          QrScanLog[]          @relation("UserScanLogs")
+  notifications       Notification[]
+  bugReports          BugReport[]          @relation("BugReporter")
+  handledBugReports   BugReport[]          @relation("BugReportHandler")
+  bugReportResponses  BugReportResponse[]  @relation("BugReportResponseAuthor")
 
-  @@index([role])
+  @@index([roles], type: Gin)
   @@index([normalizedName])
 }
 
@@ -175,9 +191,12 @@ model Course {
   totalWeeks          Int
   attendanceMode      CourseAttendanceMode       @default(STANDARD)
   mandatoryAlertLimit Int?
+  archivedAt          DateTime?
   createdAt           DateTime                   @default(now())
   updatedAt           DateTime                   @updatedAt
   teacher             User                       @relation("CourseTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
+  members             CourseMember[]
+  attendancePolicy    CourseAttendancePolicy?
   enrollments         Enrollment[]
   attendanceSessions  AttendanceSession[]
   preparatoryDayPlans CoursePreparatoryDayPlan[]
@@ -186,6 +205,33 @@ model Course {
 
   @@unique([teacherId, code])
   @@index([teacherId])
+  @@index([archivedAt])
+}
+
+model CourseMember {
+  courseId  String
+  userId    String
+  role      CourseMemberRole
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, userId])
+  @@index([userId, role])
+}
+
+model CourseAttendancePolicy {
+  courseId                  String           @id
+  photoMode                 VerificationMode @default(REQUIRED)
+  networkMode               VerificationMode @default(REQUIRED)
+  locationMode              VerificationMode @default(REQUIRED)
+  deviceMode                VerificationMode @default(REQUIRED)
+  maxLocationAccuracyMeters Int?
+  lateAfterMinutes          Int?
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
+  course                    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }
 
 model CoursePreparatoryDayPlan {
@@ -198,56 +244,63 @@ model CoursePreparatoryDayPlan {
 }
 
 model Enrollment {
-  id                   String              @id @default(cuid())
+  id                   String                  @id @default(cuid())
   courseId             String
   fullNameOnList       String
   normalizedNameOnList String
   schoolNumberOnList   String
-  isMandatory          Boolean             @default(false)
+  isMandatory          Boolean                 @default(false)
   matchedUserId        String?
   matchedAt            DateTime?
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
-  course               Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  matchedUser          User?               @relation("MatchedStudent", fields: [matchedUserId], references: [id], onDelete: SetNull)
+  archivedAt           DateTime?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  course               Course                  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  matchedUser          User?                   @relation("MatchedStudent", fields: [matchedUserId], references: [id], onDelete: SetNull)
   attendanceRecords    AttendanceRecord[]
+  deviceClaims         AttendanceDeviceClaim[]
   attendanceAttempts   AttendanceAttempt[]
   qrScanLogs           QrScanLog[]
 
   @@unique([courseId, schoolNumberOnList])
   @@index([courseId, normalizedNameOnList])
   @@index([matchedUserId])
+  @@index([courseId, archivedAt])
 }
 
 model AttendanceSession {
-  id                  String                @id @default(cuid())
+  id                  String                  @id @default(cuid())
   courseId            String
-  slotType            AttendanceSlotType    @default(WEEKLY)
+  slotType            AttendanceSlotType      @default(WEEKLY)
   weekNumber          Int?
   sessionIndexInWeek  Int?
-  sessionDate         DateTime?             @db.Date
+  sessionDate         DateTime?               @db.Date
   lessonPeriod        Int?
-  startedAt           DateTime              @default(now())
+  startedAt           DateTime                @default(now())
   endedAt             DateTime?
-  status              SessionStatus         @default(ACTIVE)
+  status              SessionStatus           @default(ACTIVE)
   createdBy           SessionCreationSource
   createdByUserId     String
   schoolLat           Float
   schoolLng           Float
   allowedRadiusMeters Int
   allowedIpRanges     String[]
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  course              Course                @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  createdByUser       User                  @relation("SessionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  policySnapshot      Json                    @default("{}")
+  voidedAt            DateTime?
+  voidedByUserId      String?
+  voidReason          String?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  course              Course                  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdByUser       User                    @relation("SessionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  voidedByUser        User?                   @relation("SessionVoider", fields: [voidedByUserId], references: [id], onDelete: SetNull)
   qrTokens            QrToken[]
   attendanceRecords   AttendanceRecord[]
+  deviceClaims        AttendanceDeviceClaim[]
   attendanceAttempts  AttendanceAttempt[]
   qrScanLogs          QrScanLog[]
   notifications       Notification[]
 
-  @@unique([courseId, weekNumber, sessionIndexInWeek])
-  @@unique([courseId, sessionDate, lessonPeriod])
   @@index([courseId, status])
   @@index([courseId, sessionDate])
 }
@@ -266,12 +319,12 @@ model QrToken {
 }
 
 model AttendanceRecord {
-  id                    String            @id @default(cuid())
+  id                    String               @id @default(cuid())
   sessionId             String
   enrollmentId          String
   studentId             String?
   source                AttendanceSource
-  recordedAt            DateTime          @default(now())
+  recordedAt            DateTime             @default(now())
   ipAddress             String?
   latitude              Float?
   longitude             Float?
@@ -279,22 +332,51 @@ model AttendanceRecord {
   distanceMeters        Float?
   deviceFingerprintHash String?
   status                AttendanceStatus
-  isExcused             Boolean           @default(false)
   excuseReason          String?
   note                  String?
   enteredByTeacherId    String?
   editedAt              DateTime?
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
-  session               AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  enrollment            Enrollment        @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
-  student               User?             @relation("RecordStudent", fields: [studentId], references: [id], onDelete: SetNull)
-  enteredByTeacher      User?             @relation("RecordEnteredBy", fields: [enteredByTeacherId], references: [id], onDelete: SetNull)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  session               AttendanceSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  enrollment            Enrollment           @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  student               User?                @relation("RecordStudent", fields: [studentId], references: [id], onDelete: SetNull)
+  enteredByTeacher      User?                @relation("RecordEnteredBy", fields: [enteredByTeacherId], references: [id], onDelete: SetNull)
+  revisions             AttendanceRevision[]
 
   @@unique([sessionId, enrollmentId])
-  @@unique([sessionId, deviceFingerprintHash])
+  @@index([sessionId, deviceFingerprintHash])
   @@index([studentId, recordedAt])
   @@index([sessionId, status])
+}
+
+model AttendanceRevision {
+  id             String           @id @default(cuid())
+  recordId       String
+  editedByUserId String
+  beforeStatus   AttendanceStatus
+  afterStatus    AttendanceStatus
+  beforeNote     String?
+  afterNote      String?
+  reason         String           @db.Text
+  createdAt      DateTime         @default(now())
+  record         AttendanceRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  editedByUser   User             @relation("RevisionEditor", fields: [editedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([recordId, createdAt])
+  @@index([editedByUserId, createdAt])
+}
+
+model AttendanceDeviceClaim {
+  sessionId             String
+  deviceFingerprintHash String
+  enrollmentId          String
+  createdAt             DateTime          @default(now())
+  session               AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  enrollment            Enrollment        @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@id([sessionId, deviceFingerprintHash])
+  @@index([enrollmentId])
 }
 
 model AttendanceAttempt {
@@ -398,21 +480,21 @@ model Notification {
 }
 
 model BugReport {
-  id                 String          @id @default(cuid())
+  id                 String              @id @default(cuid())
   reporterId         String
   subject            String
-  description        String          @db.Text
+  description        String              @db.Text
   screenshotPath     String
   screenshotMimeType String
   pageUrl            String?
-  userAgent          String?         @db.Text
-  status             BugReportStatus @default(PENDING)
+  userAgent          String?             @db.Text
+  status             BugReportStatus     @default(PENDING)
   handledById        String?
   resolvedAt         DateTime?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  reporter           User            @relation("BugReporter", fields: [reporterId], references: [id], onDelete: Restrict)
-  handledBy          User?           @relation("BugReportHandler", fields: [handledById], references: [id], onDelete: SetNull)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  reporter           User                @relation("BugReporter", fields: [reporterId], references: [id], onDelete: Restrict)
+  handledBy          User?               @relation("BugReportHandler", fields: [handledById], references: [id], onDelete: SetNull)
   responses          BugReportResponse[]
 
   @@index([status, createdAt])

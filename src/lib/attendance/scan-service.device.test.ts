@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   transaction: vi.fn(),
   transactionRecordCreate: vi.fn(),
   transactionAttemptCreate: vi.fn(),
+  transactionDeviceClaimCreate: vi.fn(),
   verifyQrToken: vi.fn(),
   createQrScanLog: vi.fn(),
 }));
@@ -61,6 +62,7 @@ const attendanceSession = {
   courseId: "course-1",
   status: "ACTIVE",
   allowedIpRanges: [],
+  policySnapshot: { networkMode: "DISABLED" },
   schoolLat: 41.0082,
   schoolLng: 28.9784,
   allowedRadiusMeters: 100,
@@ -117,6 +119,7 @@ describe("recordAttendanceScan device reuse protection", () => {
       callback({
         attendanceRecord: { create: mocks.transactionRecordCreate },
         attendanceAttempt: { create: mocks.transactionAttemptCreate },
+        attendanceDeviceClaim: { create: mocks.transactionDeviceClaimCreate },
       }),
     );
     mocks.createQrScanLog.mockResolvedValue({ id: "log-1" });

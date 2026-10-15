@@ -8,3 +8,4 @@ node_modules_*
 !.env.example
 storage
 coverage
+backups

@@ -5,6 +5,8 @@ import { ApiError } from "@/lib/http/api-error";
 import type { RequestContext } from "@/lib/http/request-context";
 import { calculatePlannedSessionCount } from "@/lib/attendance/schedule";
 import { sessionDateKey, weekdayForSessionDate } from "@/lib/attendance/slot";
+import { DEFAULT_ATTENDANCE_POLICY, type AttendancePolicy } from "@/lib/attendance/policy";
+import { courseAccessWhere } from "@/lib/courses/permissions";
 
 import type { CreateCourseInput, UpdateCourseInput } from "./schema";
 
@@ -24,7 +26,7 @@ const courseSelect = {
   updatedAt: true,
   _count: {
     select: {
-      enrollments: true,
+      enrollments: { where: { archivedAt: null } },
       attendanceSessions: { where: { status: "CLOSED" as const } },
     },
   },
@@ -43,6 +45,23 @@ const courseSelect = {
     orderBy: { weekday: "asc" as const },
     select: { weekday: true, lessonCount: true },
   },
+  attendancePolicy: {
+    select: {
+      photoMode: true,
+      networkMode: true,
+      locationMode: true,
+      deviceMode: true,
+      maxLocationAccuracyMeters: true,
+      lateAfterMinutes: true,
+    },
+  },
+  members: {
+    orderBy: { createdAt: "asc" as const },
+    select: {
+      role: true,
+      user: { select: { id: true, name: true, email: true } },
+    },
+  },
 } as const;
 
 function serializeCourse(course: Awaited<ReturnType<typeof findOwnedCourse>>) {
@@ -54,6 +73,7 @@ function serializeCourse(course: Awaited<ReturnType<typeof findOwnedCourse>>) {
       course.weeklySessionCount,
       course.totalWeeks,
     ),
+    allAttendanceSessionCount: course.attendanceSessions.length,
     hasActiveSession: course.attendanceSessions.some((session) => session.status === "ACTIVE"),
     completedSessions: course.attendanceSessions
       .filter((session) => session.status === "CLOSED")
@@ -66,6 +86,8 @@ function serializeCourse(course: Awaited<ReturnType<typeof findOwnedCourse>>) {
         lessonPeriod: session.lessonPeriod,
       })),
     preparatoryDayPlans: course.preparatoryDayPlans,
+    attendancePolicy: course.attendancePolicy ?? DEFAULT_ATTENDANCE_POLICY,
+    members: course.members,
     attendanceSessions: undefined,
   };
 }
@@ -100,14 +122,14 @@ function auditSnapshot(course: {
 
 async function findOwnedCourse(teacherId: string, courseId: string) {
   return prisma.course.findFirst({
-    where: { id: courseId, teacherId },
+    where: { id: courseId, ...courseAccessWhere(teacherId, "COURSE_VIEW") },
     select: courseSelect,
   });
 }
 
 export async function listTeacherCourses(teacherId: string) {
   const courses = await prisma.course.findMany({
-    where: { teacherId },
+    where: courseAccessWhere(teacherId, "COURSE_VIEW"),
     orderBy: { createdAt: "desc" },
     select: courseSelect,
   });
@@ -129,10 +151,14 @@ export async function createTeacherCourse(
   input: CreateCourseInput,
   context: RequestContext,
 ) {
-  const { preparatoryDayPlans, ...courseInput } = input;
+  const { preparatoryDayPlans, attendancePolicy, ...courseInput } = input;
   const derivedWeeklySessionCount = input.attendanceMode === "PREPARATORY"
     ? preparatoryDayPlans.reduce((total, plan) => total + plan.lessonCount, 0)
     : input.weeklySessionCount;
+  const effectiveAttendancePolicy: AttendancePolicy = attendancePolicy ?? {
+    ...DEFAULT_ATTENDANCE_POLICY,
+    networkMode: courseInput.allowedIpRanges.length > 0 ? "REQUIRED" : "DISABLED",
+  };
   const course = await prisma.$transaction(async (tx) => {
     const created = await tx.course.create({
       data: {
@@ -143,6 +169,8 @@ export async function createTeacherCourse(
           : undefined,
         mandatoryAlertLimit: input.mandatoryAlertLimit ?? null,
         teacherId,
+        members: { create: { userId: teacherId, role: "OWNER" } },
+        attendancePolicy: { create: effectiveAttendancePolicy },
       },
     });
 
@@ -171,7 +199,7 @@ export async function updateTeacherCourse(
 ) {
   await prisma.$transaction(async (tx) => {
     const current = await tx.course.findFirst({
-      where: { id: courseId, teacherId },
+      where: { id: courseId, ...courseAccessWhere(teacherId, "COURSE_MANAGE") },
       include: {
         _count: { select: { attendanceSessions: true } },
         preparatoryDayPlans: { select: { weekday: true, lessonCount: true } },
@@ -226,6 +254,7 @@ export async function updateTeacherCourse(
 
     const courseUpdate = { ...input };
     delete courseUpdate.preparatoryDayPlans;
+    delete courseUpdate.attendancePolicy;
     const updated = await tx.course.update({
       where: { id: courseId },
       data: {
@@ -237,6 +266,9 @@ export async function updateTeacherCourse(
               create: nextPlans,
             }
           : { deleteMany: {} },
+        attendancePolicy: input.attendancePolicy
+          ? { upsert: { create: input.attendancePolicy, update: input.attendancePolicy } }
+          : undefined,
       },
     });
 
@@ -248,6 +280,9 @@ export async function updateTeacherCourse(
         : {}),
       ...(input.allowedIpRanges !== undefined
         ? { allowedIpRanges: input.allowedIpRanges }
+        : {}),
+      ...(input.attendancePolicy !== undefined
+        ? { policySnapshot: input.attendancePolicy }
         : {}),
     };
 
@@ -281,31 +316,38 @@ export async function deleteTeacherCourse(
 ) {
   await prisma.$transaction(async (tx) => {
     const current = await tx.course.findFirst({
-      where: { id: courseId, teacherId },
-      include: { _count: { select: { attendanceSessions: true } } },
+      where: { id: courseId, ...courseAccessWhere(teacherId, "COURSE_MANAGE") },
+      include: {
+        _count: { select: { attendanceSessions: true, enrollments: true } },
+      },
     });
     if (!current) {
       throw new ApiError(404, "COURSE_NOT_FOUND", "Ders bulunamadı.");
     }
 
-    if (current._count.attendanceSessions > 0) {
-      throw new ApiError(
-        409,
-        "COURSE_HAS_ATTENDANCE",
-        "Geçmiş yoklama kaydı olan ders silinemez.",
-      );
+    const activeSession = await tx.attendanceSession.findFirst({
+      where: { courseId, status: "ACTIVE" },
+      select: { id: true },
+    });
+    if (activeSession) {
+      throw new ApiError(409, "COURSE_HAS_ACTIVE_SESSION", "Dersi arşivlemeden önce aktif yoklamayı kapatın.");
     }
 
     await tx.auditLog.create({
       data: {
         actorId: teacherId,
-        action: "COURSE_DELETED",
+        action: "COURSE_ARCHIVED",
         entityType: "Course",
         entityId: courseId,
-        before: auditSnapshot(current),
+        before: {
+          ...auditSnapshot(current),
+          deletedAttendanceSessionCount: current._count.attendanceSessions,
+          deletedEnrollmentCount: current._count.enrollments,
+          archived: true,
+        },
         ...context,
       },
     });
-    await tx.course.delete({ where: { id: courseId } });
+    await tx.course.update({ where: { id: courseId }, data: { archivedAt: new Date() } });
   });
 }

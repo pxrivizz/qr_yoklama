@@ -43,7 +43,7 @@ export async function createAttendanceNotifications(courseId: string, sessionId:
         name: true,
         code: true,
         enrollments: {
-          where: { matchedUserId: { not: null } },
+          where: { matchedUserId: { not: null }, archivedAt: null },
           select: { matchedUserId: true },
         },
       },

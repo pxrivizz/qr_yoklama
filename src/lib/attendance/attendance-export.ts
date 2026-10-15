@@ -20,6 +20,28 @@ function sessionColumnLabel(session: CourseAttendanceReport["sessions"][number])
     : `H${session.weekNumber}.O${session.sessionIndexInWeek} (${day}.${month})`;
 }
 
+function compactAttendanceCell(
+  status: AttendanceStatus,
+  detail: CourseAttendanceReport["rows"][number]["recordDetails"][number],
+) {
+  const lines = [statusLabels[status]];
+  if (!detail || status === "ABSENT") return lines[0];
+
+  lines.push(new Intl.DateTimeFormat("tr-TR", {
+    timeZone: "Europe/Istanbul",
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(detail.recordedAt));
+  if (detail.ipAddress) lines.push(`IP: ${detail.ipAddress}`);
+  if (detail.deviceFingerprintHash) {
+    lines.push(`Cihaz: ${detail.deviceFingerprintHash.slice(0, 12)}`);
+  }
+  return lines.join("\n");
+}
+
 const thinBorder = {
   top: { style: "thin", color: { rgb: "E2E8F0" } },
   bottom: { style: "thin", color: { rgb: "E2E8F0" } },
@@ -61,7 +83,7 @@ export function buildAttendanceWorkbook(
     sanitizeExcelCell(row.fullNameOnList),
     sanitizeExcelCell(row.schoolNumberOnList),
     row.isMandatory ? "Evet" : "Hayır",
-    ...row.statuses.map((status) => statusLabels[status]),
+    ...row.statuses.map((status, index) => compactAttendanceCell(status, row.recordDetails[index])),
     row.presentCount,
     row.absentCount,
     row.attendanceRate / 100,
@@ -97,7 +119,7 @@ export function buildAttendanceWorkbook(
     { wch: 26 },
     { wch: 15 },
     { wch: 10 },
-    ...report.sessions.map(() => ({ wch: 14 })),
+    ...report.sessions.map(() => ({ wch: 21 })),
     { wch: 8 },
     { wch: 8 },
     { wch: 16 },
@@ -160,6 +182,8 @@ export function buildAttendanceWorkbook(
   const yokCol = headers.length - 2;
 
   for (let rowIndex = 6; rowIndex < 6 + rows.length; rowIndex += 1) {
+    if (!worksheet["!rows"]) worksheet["!rows"] = [];
+    worksheet["!rows"][rowIndex] = { hpt: 52 };
     const isEven = rowIndex % 2 === 0;
     const defaultRowBg = isEven ? "F8FAFC" : "FFFFFF";
 
@@ -201,28 +225,29 @@ export function buildAttendanceWorkbook(
       const cell = worksheet[XLSX.utils.encode_cell({ r: rowIndex, c })];
       if (cell) {
         const val = String(cell.v);
+        const status = val.split("\n", 1)[0];
         let cellBg = defaultRowBg;
         let cellColor = "475569";
         let isBold = false;
 
-        if (val === "Var") {
+        if (status === "Var") {
           cellBg = "DCFCE7";
           cellColor = "15803D";
           isBold = true;
-        } else if (val === "Yok") {
+        } else if (status === "Yok") {
           cellBg = "FEE2E2";
           cellColor = "B91C1C";
           isBold = true;
-        } else if (val === "Mazeretli") {
+        } else if (status === "Mazeretli") {
           cellBg = "DBEAFE";
           cellColor = "1D4ED8";
           isBold = true;
         }
 
         cell.s = {
-          font: { bold: isBold, color: { rgb: cellColor }, sz: 10 },
+          font: { bold: isBold, color: { rgb: cellColor }, sz: val.includes("\n") ? 8 : 10 },
           fill: { patternType: "solid", fgColor: { rgb: cellBg } },
-          alignment: { vertical: "center", horizontal: "center" },
+          alignment: { vertical: "center", horizontal: "center", wrapText: true },
           border: thinBorder,
         };
       }

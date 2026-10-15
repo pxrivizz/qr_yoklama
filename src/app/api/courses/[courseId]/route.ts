@@ -53,7 +53,11 @@ export async function DELETE(
   try {
     const teacher = await requireTeacher();
     const { courseId } = await context.params;
-    await deleteTeacherCourse(teacher.id, courseId, getRequestContext(request));
+    await deleteTeacherCourse(
+      teacher.id,
+      courseId,
+      getRequestContext(request),
+    );
     return new Response(null, { status: 204 });
   } catch (error) {
     return apiErrorResponse(error);

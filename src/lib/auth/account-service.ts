@@ -12,7 +12,7 @@ export async function changeTeacherPassword(
   context: RequestContext,
 ) {
   const teacher = await prisma.user.findFirst({
-    where: { id: teacherId, role: "TEACHER" },
+    where: { id: teacherId, roles: { has: "TEACHER" } },
     select: { id: true, passwordHash: true },
   });
   if (!teacher?.passwordHash) {

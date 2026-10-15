@@ -8,6 +8,12 @@ import { Input, Textarea } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/status-message";
 import { CourseLocationNetwork } from "@/components/teacher/course-location-network";
 import { WEEKDAYS, type PreparatoryDayPlan } from "@/lib/attendance/slot";
+import {
+  DEFAULT_CAMPUS_LOCATION,
+  DEFAULT_CAMPUS_NETWORK_CIDR,
+} from "@/lib/locations/campus-locations";
+
+type VerificationMode = "REQUIRED" | "DISABLED";
 
 type EditableCourse = {
   id: string;
@@ -22,6 +28,14 @@ type EditableCourse = {
   attendanceMode: "STANDARD" | "PREPARATORY";
   preparatoryDayPlans: PreparatoryDayPlan[];
   mandatoryAlertLimit: number | null;
+  attendancePolicy: {
+    photoMode: VerificationMode;
+    networkMode: VerificationMode;
+    locationMode: VerificationMode;
+    deviceMode: VerificationMode;
+    maxLocationAccuracyMeters: number | null;
+    lateAfterMinutes: number | null;
+  };
   _count?: { attendanceSessions: number };
 };
 
@@ -51,7 +65,7 @@ function validateCourseFields(
     ["code", "Ders kodu"],
     ["schoolLat", "Okul enlemi"],
     ["schoolLng", "Okul boylamı"],
-    ["allowedRadiusMeters", "Yarıçap"],
+    ["allowedRadiusMeters", "Yoklama alanı"],
     ["totalWeeks", "Toplam hafta"],
     ["mandatoryAlertLimit", "Devamsızlık hakkı"],
   ];
@@ -73,16 +87,16 @@ function validateCourseFields(
   const numericRules = [
     ["schoolLat", -90, 90, "Okul enlemi -90 ile 90 arasında olmalıdır."],
     ["schoolLng", -180, 180, "Okul boylamı -180 ile 180 arasında olmalıdır."],
-    ["allowedRadiusMeters", 10, 2_000, "Yarıçap 10 ile 2000 metre arasında olmalıdır."],
+    ["allowedRadiusMeters", 10, 2_000, "Yoklama alanı 10 ile 2000 metre arasında olmalıdır."],
     ["totalWeeks", 1, 52, "Toplam hafta 1 ile 52 arasında olmalıdır."],
     ["mandatoryAlertLimit", 1, 100, "Devamsızlık hakkı 1 ile 100 arasında olmalıdır."],
   ] as const;
 
   const rules = attendanceMode === "STANDARD"
     ? [
-        ...numericRules,
-        ["weeklySessionCount", 1, 10, "Haftalık yoklama 1 ile 10 arasında olmalıdır."] as const,
-      ]
+      ...numericRules,
+      ["weeklySessionCount", 1, 10, "Haftalık yoklama 1 ile 10 arasında olmalıdır."] as const,
+    ]
     : numericRules;
 
   for (const [field, minimum, maximum, message] of rules) {
@@ -121,13 +135,28 @@ export function CourseForm({
     (total, plan) => total + plan.lessonCount,
     0,
   );
-  const [schoolLat, setSchoolLat] = useState(course?.schoolLat ?? 41.424793);
-  const [schoolLng, setSchoolLng] = useState(course?.schoolLng ?? 27.087227);
-  const [allowedIpRanges, setAllowedIpRanges] = useState(
-    course?.allowedIpRanges.join("\n") || "10.0.0.0/8",
+  const [schoolLat, setSchoolLat] = useState(
+    course?.schoolLat ?? DEFAULT_CAMPUS_LOCATION.latitude,
   );
-  const [ipRestrictionEnabled, setIpRestrictionEnabled] = useState(
-    course ? course.allowedIpRanges.length > 0 : true,
+  const [schoolLng, setSchoolLng] = useState(
+    course?.schoolLng ?? DEFAULT_CAMPUS_LOCATION.longitude,
+  );
+  const [allowedRadiusMeters, setAllowedRadiusMeters] = useState(
+    course?.allowedRadiusMeters ?? 100,
+  );
+  const [allowedIpRanges, setAllowedIpRanges] = useState(
+    course?.allowedIpRanges.join("\n") || DEFAULT_CAMPUS_NETWORK_CIDR,
+  );
+  const [photoMode, setPhotoMode] = useState<VerificationMode>(course?.attendancePolicy.photoMode ?? "REQUIRED");
+  const [networkMode, setNetworkMode] = useState<VerificationMode>(course?.attendancePolicy.networkMode ?? "REQUIRED");
+  const ipRestrictionEnabled = networkMode === "REQUIRED";
+  const [locationMode, setLocationMode] = useState<VerificationMode>(course?.attendancePolicy.locationMode ?? "REQUIRED");
+  const [deviceMode, setDeviceMode] = useState<VerificationMode>(course?.attendancePolicy.deviceMode ?? "REQUIRED");
+  const [maxLocationAccuracyMeters, setMaxLocationAccuracyMeters] = useState<number | "">(
+    course?.attendancePolicy.maxLocationAccuracyMeters ?? "",
+  );
+  const [lateAfterMinutes, setLateAfterMinutes] = useState<number | "">(
+    course?.attendancePolicy.lateAfterMinutes ?? "",
   );
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<{ text: string; variant: "success" | "error" }>();
@@ -172,12 +201,12 @@ export function CourseForm({
       code: String(values.get("code")),
       schoolLat: Number(values.get("schoolLat")),
       schoolLng: Number(values.get("schoolLng")),
-      allowedRadiusMeters: Number(values.get("allowedRadiusMeters")),
+      allowedRadiusMeters,
       allowedIpRanges: ipRestrictionEnabled
         ? String(values.get("allowedIpRanges"))
-            .split(/[\n,]+/)
-            .map((value) => value.trim())
-            .filter(Boolean)
+          .split(/[\n,]+/)
+          .map((value) => value.trim())
+          .filter(Boolean)
         : [],
       weeklySessionCount: attendanceMode === "PREPARATORY"
         ? preparatoryWeeklyTotal
@@ -186,6 +215,14 @@ export function CourseForm({
       attendanceMode,
       preparatoryDayPlans: attendanceMode === "PREPARATORY" ? preparatoryDayPlans : [],
       mandatoryAlertLimit: Number(mandatoryLimit),
+      attendancePolicy: {
+        photoMode,
+        networkMode: ipRestrictionEnabled ? networkMode : "DISABLED",
+        locationMode,
+        deviceMode,
+        maxLocationAccuracyMeters: maxLocationAccuracyMeters === "" ? null : Number(maxLocationAccuracyMeters),
+        lateAfterMinutes: lateAfterMinutes === "" ? null : Number(lateAfterMinutes),
+      },
     };
 
     try {
@@ -253,10 +290,16 @@ export function CourseForm({
         setTotalWeeks(9);
         setAttendanceMode("STANDARD");
         setPreparatoryDayPlans(WEEKDAYS.map(({ weekday }) => ({ weekday, lessonCount: 0 })));
-        setSchoolLat(41.424793);
-        setSchoolLng(27.087227);
-        setAllowedIpRanges("10.0.0.0/8");
-        setIpRestrictionEnabled(true);
+        setSchoolLat(DEFAULT_CAMPUS_LOCATION.latitude);
+        setSchoolLng(DEFAULT_CAMPUS_LOCATION.longitude);
+        setAllowedRadiusMeters(100);
+        setAllowedIpRanges(DEFAULT_CAMPUS_NETWORK_CIDR);
+        setPhotoMode("REQUIRED");
+        setNetworkMode("REQUIRED");
+        setLocationMode("REQUIRED");
+        setDeviceMode("REQUIRED");
+        setMaxLocationAccuracyMeters("");
+        setLateAfterMinutes("");
         setFieldErrors({});
       }
       router.refresh();
@@ -281,6 +324,7 @@ export function CourseForm({
       <CourseLocationNetwork
         latitude={schoolLat}
         longitude={schoolLng}
+        radiusMeters={allowedRadiusMeters}
         onLocationChange={(latitude, longitude) => {
           setSchoolLat(latitude);
           setSchoolLng(longitude);
@@ -289,7 +333,7 @@ export function CourseForm({
         }}
         onIpAddressChange={(cidr) => {
           setAllowedIpRanges(cidr);
-          setIpRestrictionEnabled(true);
+          setNetworkMode("REQUIRED");
           clearFieldError("allowedIpRanges");
         }}
       />
@@ -300,7 +344,21 @@ export function CourseForm({
       </div>
 
       <div className={`grid gap-4 ${attendanceMode === "PREPARATORY" ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
-        <Input name="allowedRadiusMeters" label="Yarıçap (m)" required type="number" min="10" max="2000" defaultValue={course?.allowedRadiusMeters ?? 100} error={fieldErrors.allowedRadiusMeters} onChange={() => clearFieldError("allowedRadiusMeters")} />
+        <Input
+          name="allowedRadiusMeters"
+          label="Yoklama alanı (metre)"
+          required
+          type="number"
+          min="10"
+          max="2000"
+          value={allowedRadiusMeters}
+          error={fieldErrors.allowedRadiusMeters}
+          hint="Seçilen noktanın çevresinde yoklama alınabilecek uzaklık. Haritada mavi alan olarak gösterilir."
+          onChange={(event) => {
+            setAllowedRadiusMeters(Number(event.target.value));
+            clearFieldError("allowedRadiusMeters");
+          }}
+        />
         {attendanceMode === "STANDARD" && (
           <Input
             name="weeklySessionCount"
@@ -403,43 +461,74 @@ export function CourseForm({
       </div>
 
       <div className="rounded-lg border border-outline-variant bg-surface-container-low p-4">
-        <label className="flex cursor-pointer items-start gap-3 text-on-surface">
-          <input
-            type="checkbox"
-            checked={ipRestrictionEnabled}
-            onChange={(event) => {
-              setIpRestrictionEnabled(event.target.checked);
-              if (!event.target.checked) clearFieldError("allowedIpRanges");
-            }}
-            className="mt-0.5 size-5 shrink-0 accent-primary"
-          />
-          <span>
-            <span className="block font-label-md text-label-md">Okul ağı kontrolü</span>
-            <span className="mt-0.5 block font-body-sm text-body-sm text-on-surface-variant">
-              Açıkken yalnızca aşağıdaki IP aralıklarından yoklama alınabilir.
-            </span>
-          </span>
-        </label>
-
+        <h3 className="font-label-md text-label-md text-on-surface">Okul interneti</h3>
+        <p className="mt-1 font-body-sm text-body-sm text-on-surface-variant">
+          Kontrol zorunluysa öğrenciler yalnızca bu internet adreslerinden yoklama verebilir.
+        </p>
         <div className={ipRestrictionEnabled ? "mt-4" : "mt-4 opacity-55"}>
           <Textarea
             name="allowedIpRanges"
-            label="İzin verilen IP aralıkları"
+            label="Okul internet adresleri"
             required={ipRestrictionEnabled}
             disabled={!ipRestrictionEnabled}
             rows={2}
             value={allowedIpRanges}
             error={fieldErrors.allowedIpRanges}
             onChange={(event) => { setAllowedIpRanges(event.target.value); clearFieldError("allowedIpRanges"); }}
-            placeholder="194.27.153.130/32"
+            placeholder="194.27.153.159/8"
             hint={
               ipRestrictionEnabled
-                ? "Her satıra bir IPv4 veya IPv6 CIDR aralığı. Tek IP için /32 kullanın."
-                : "IP kontrolü kapalı; yoklama sırasında ağ kontrolü yapılmayacak."
+                ? "Her satıra bir adres yazın. Tek bir IPv4 adresi için sonuna /32 ekleyin."
+                : "Okul interneti kontrolü yok."
             }
           />
         </div>
       </div>
+
+      <fieldset className="rounded-lg border border-outline-variant bg-surface-container-low p-4">
+        <legend className="px-1 font-label-md text-label-md text-on-surface">Yoklama kontrolleri</legend>
+        <p className="mb-4 font-body-sm text-body-sm text-on-surface-variant">
+          Zorunlu seçilen bir koşul sağlanmazsa yoklama alınmaz. Yok seçilirse o kontrol yapılmaz.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {([
+            ["Fotoğraf", photoMode, setPhotoMode],
+            ["Okul interneti", networkMode, setNetworkMode],
+            ["Konum", locationMode, setLocationMode],
+            ["Cihaz", deviceMode, setDeviceMode],
+          ] as const).map(([label, value, setter]) => (
+            <label key={label} className="font-label-sm text-label-sm text-on-surface">
+              {label}
+              <select
+                value={value}
+                onChange={(event) => setter(event.target.value as VerificationMode)}
+                className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-md text-body-md"
+              >
+                <option value="REQUIRED">Zorunlu</option>
+                <option value="DISABLED">Yok</option>
+              </select>
+            </label>
+          ))}
+          <Input
+            label="Konum hassasiyeti (metre)"
+            type="number"
+            min="10"
+            max="5000"
+            value={maxLocationAccuracyMeters}
+            onChange={(event) => setMaxLocationAccuracyMeters(event.target.value === "" ? "" : Number(event.target.value))}
+            placeholder="İsteğe bağlı"
+          />
+          <Input
+            label="Geç kalma sınırı (dakika)"
+            type="number"
+            min="1"
+            max="240"
+            value={lateAfterMinutes}
+            onChange={(event) => setLateAfterMinutes(event.target.value === "" ? "" : Number(event.target.value))}
+            placeholder="İsteğe bağlı"
+          />
+        </div>
+      </fieldset>
 
       <Input
         name="mandatoryAlertLimit"

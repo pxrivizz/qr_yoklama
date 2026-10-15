@@ -7,13 +7,14 @@ import { QrLogsView } from "@/components/teacher/qr-logs-view";
 import { BugReportsView } from "@/components/teacher/bug-reports-view";
 import { listBugReports } from "@/lib/bug-reports/service";
 import { requireTeacher } from "@/lib/auth/authorization";
+import { courseAccessWhere } from "@/lib/courses/permissions";
 
 export default async function TeacherLogsPage() {
   const teacher = await requireTeacher();
 
   const [courses, initialData, bugReportData] = await Promise.all([
     prisma.course.findMany({
-      where: { teacherId: teacher.id },
+      where: courseAccessWhere(teacher.id, "COURSE_VIEW"),
       select: { id: true, name: true, code: true },
       orderBy: { code: "asc" },
     }),

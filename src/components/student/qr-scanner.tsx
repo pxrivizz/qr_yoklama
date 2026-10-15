@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { MaterialIcon } from "@/components/ui/icons";
+import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/cn";
 import { geolocationErrorMessage } from "@/lib/browser/geolocation-error";
 import {
@@ -75,6 +76,7 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
       ? "Devam ettiğinizde telefonunuz konum erişimi isteyecek. Yoklamayı tamamlamak için izin verin."
       : "Kamera açılmadan önce telefonunuz konum erişimi isteyecek. Ardından öğretmen ekranındaki QR koduna doğrultun.",
   );
+  const [networkWarning, setNetworkWarning] = useState<string>();
 
   const [zoomCap, setZoomCap] = useState<ZoomCapability>({ supported: false, min: 1, max: 1, step: 0.1, current: 1 });
   const [currentZoom, setCurrentZoom] = useState(1);
@@ -146,7 +148,17 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
           data?: { courseName: string; courseCode: string };
           error?: { message?: string; code?: string };
         };
-        if (!response.ok) throw new Error(body.error?.message ?? "Yoklama kaydedilemedi.");
+        if (!response.ok) {
+          const errorMessage = body.error?.message ?? "Yoklama kaydedilemedi.";
+          if (body.error?.code === "SCHOOL_NETWORK_REQUIRED") {
+            setState("error");
+            setTitle("Okul ağı gerekli");
+            setMessage(errorMessage);
+            setNetworkWarning(errorMessage);
+            return;
+          }
+          throw new Error(errorMessage);
+        }
 
         if (body.data) setCourseName(`${body.data.courseCode} · ${body.data.courseName}`);
         setState("success");
@@ -283,6 +295,16 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
     };
   }, [stopCamera]);
 
+  function retryAfterNetworkWarning() {
+    setNetworkWarning(undefined);
+    handledTokenRef.current = null;
+    if (initialToken) {
+      void verifyInitialToken();
+    } else {
+      void startCamera();
+    }
+  }
+
   return (
     <main className="relative flex min-h-dvh flex-col overflow-hidden bg-primary-container text-on-primary">
       <header className="relative z-10 flex items-center justify-between px-4 py-4">
@@ -408,6 +430,40 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
         )}
         {state === "success" && <p className="mt-6 font-label-sm text-label-sm text-on-secondary-container">İşlem tamamlandı</p>}
       </section>
+
+      <Modal
+        open={Boolean(networkWarning)}
+        onClose={() => setNetworkWarning(undefined)}
+        title="Eduroam bağlantısı gerekli"
+        description="Cihazınız okul ağı üzerinden görünmüyor."
+        className="max-w-md"
+      >
+        <div className="grid gap-5">
+          <div className="flex items-start gap-3 rounded-xl border border-error/25 bg-error-container p-4">
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-error text-on-error">
+              <MaterialIcon name="wifi_off" />
+            </span>
+            <div>
+              <p className="font-label-lg text-label-lg text-on-surface">
+                Eduroam’a bağlı değilsiniz
+              </p>
+              <p className="mt-1 font-body-md text-body-md leading-6 text-on-surface-variant">
+                {networkWarning} Telefonunuzun Wi-Fi ayarlarından <strong>eduroam</strong> ağına
+                bağlandıktan sonra tekrar deneyin.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" onClick={() => setNetworkWarning(undefined)}>
+              Kapat
+            </Button>
+            <Button type="button" onClick={retryAfterNetworkWarning}>
+              Ağa Bağlandım, Tekrar Dene
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </main>
   );
 }

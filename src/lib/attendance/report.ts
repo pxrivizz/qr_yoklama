@@ -1,4 +1,5 @@
 import type { AttendanceStatus } from "@/generated/prisma/enums";
+import { absenceContribution, countsAsAttended } from "@/lib/attendance/status";
 
 type ReportSession = {
   id: string;
@@ -12,6 +13,9 @@ type ReportSession = {
   records: Array<{
     enrollmentId: string;
     status: AttendanceStatus;
+    recordedAt: Date;
+    ipAddress: string | null;
+    deviceFingerprintHash: string | null;
   }>;
 };
 
@@ -27,6 +31,11 @@ type ReportEnrollment = {
 
 export type StudentAttendanceReportRow = ReportEnrollment & {
   statuses: AttendanceStatus[];
+  recordDetails: Array<{
+    recordedAt: Date;
+    ipAddress: string | null;
+    deviceFingerprintHash: string | null;
+  } | null>;
   presentCount: number;
   absentCount: number;
   attendanceRate: number;
@@ -39,21 +48,35 @@ export function buildStudentAttendanceRows(
   mandatoryAlertLimit: number | null,
 ): StudentAttendanceReportRow[] {
   const recordsBySession = sessions.map(
-    (session) => new Map(session.records.map((record) => [record.enrollmentId, record.status])),
+    (session) => new Map(session.records.map((record) => [record.enrollmentId, record])),
   );
 
   return enrollments.map((enrollment) => {
     const statuses = recordsBySession.map(
-      (records) => records.get(enrollment.id) ?? ("ABSENT" as const),
+      (records) => records.get(enrollment.id)?.status ?? ("ABSENT" as const),
     );
-    const presentCount = statuses.filter((status) => status === "PRESENT").length;
-    const absentCount = statuses.filter((status) => status !== "PRESENT").length;
+    const recordDetails = recordsBySession.map((records) => {
+      const record = records.get(enrollment.id);
+      return record
+        ? {
+            recordedAt: record.recordedAt,
+            ipAddress: record.ipAddress,
+            deviceFingerprintHash: record.deviceFingerprintHash,
+          }
+        : null;
+    });
+    const presentCount = statuses.filter(countsAsAttended).length;
+    const absentCount = statuses.reduce(
+      (total, status) => total + absenceContribution(status),
+      0,
+    );
     const attendanceRate =
       sessions.length === 0 ? 0 : Math.round(((presentCount) / sessions.length) * 100);
 
     return {
       ...enrollment,
       statuses,
+      recordDetails,
       presentCount,
       absentCount,
       attendanceRate,

@@ -4,23 +4,22 @@ import { prisma } from "@/lib/db";
 import { ApiError } from "@/lib/http/api-error";
 import type { RequestContext } from "@/lib/http/request-context";
 import { calculateAbsenceLimitStatus } from "@/lib/attendance/absence-limit";
+import { absenceContribution, countsAsAttended } from "@/lib/attendance/status";
 
 import type { ParsedEnrollmentRow } from "./excel-parser";
 import { normalizePersonName } from "@/lib/students/name";
+import { courseAccessWhere, requireCoursePermission } from "@/lib/courses/permissions";
 
 export type EnrollmentPreviewRow = ParsedEnrollmentRow & {
   action: "CREATE" | "UPDATE" | "ERROR";
 };
 
 async function assertOwnedCourse(teacherId: string, courseId: string) {
-  const course = await prisma.course.findFirst({
-    where: { id: courseId, teacherId },
+  await requireCoursePermission(teacherId, courseId, "ENROLLMENT_MANAGE");
+  return prisma.course.findUniqueOrThrow({
+    where: { id: courseId },
     select: { id: true, name: true },
   });
-  if (!course) {
-    throw new ApiError(404, "COURSE_NOT_FOUND", "Ders bulunamadı.");
-  }
-  return course;
 }
 
 export async function previewEnrollments(
@@ -83,7 +82,7 @@ export async function importEnrollments(
   await prisma.$transaction(
     async (tx) => {
       const ownedCourse = await tx.course.findFirst({
-        where: { id: courseId, teacherId },
+      where: { id: courseId, ...courseAccessWhere(teacherId, "ENROLLMENT_MANAGE") },
         select: { id: true },
       });
       if (!ownedCourse) {
@@ -97,7 +96,7 @@ export async function importEnrollments(
           select: { schoolNumberOnList: true, matchedUserId: true },
         }),
         tx.user.findMany({
-          where: { role: "STUDENT", schoolNumber: { in: schoolNumbers } },
+          where: { roles: { has: "STUDENT" }, schoolNumber: { in: schoolNumbers } },
           select: { id: true, schoolNumber: true, normalizedName: true },
         }),
       ]);
@@ -142,6 +141,7 @@ export async function importEnrollments(
             isMandatory: row.isMandatory,
             matchedUserId: shouldAutoMatch ? matchedStudent.id : undefined,
             matchedAt: shouldAutoMatch ? new Date() : undefined,
+            archivedAt: null,
           },
           select: { id: true, matchedUserId: true },
         });
@@ -226,7 +226,7 @@ export async function getCourseStudents(
   courseId: string,
 ): Promise<CourseStudentsData> {
   const course = await prisma.course.findFirst({
-    where: { id: courseId, teacherId },
+    where: { id: courseId, ...courseAccessWhere(teacherId, "COURSE_VIEW") },
     select: {
       id: true,
       name: true,
@@ -239,6 +239,7 @@ export async function getCourseStudents(
         select: { id: true },
       },
       enrollments: {
+        where: { archivedAt: null },
         orderBy: [{ fullNameOnList: "asc" }],
         select: {
           id: true,
@@ -273,10 +274,15 @@ export async function getCourseStudents(
   const totalClosedSessions = course.attendanceSessions.length;
 
   const students: CourseStudentItem[] = course.enrollments.map((enrollment) => {
-    const attendedCount = enrollment.attendanceRecords.filter(
-      (r) => r.status === "PRESENT",
-    ).length;
-    const absentCount = Math.max(0, totalClosedSessions - attendedCount);
+    const attendedCount = enrollment.attendanceRecords.filter((record) => countsAsAttended(record.status)).length;
+    const recordedAbsence = enrollment.attendanceRecords.reduce(
+      (total, record) => total + absenceContribution(record.status),
+      0,
+    );
+    const absentCount = recordedAbsence + Math.max(
+      0,
+      totalClosedSessions - enrollment.attendanceRecords.length,
+    );
     const attendanceRate =
       totalClosedSessions > 0
         ? Math.round((attendedCount / totalClosedSessions) * 100)
@@ -351,6 +357,7 @@ export async function addCourseStudent(
   const fullName = data.fullName.trim();
   const schoolNumber = data.schoolNumber.trim();
   const isMandatory = Boolean(data.isMandatory);
+  const normalizedName = normalizePersonName(fullName);
 
   if (!fullName || !schoolNumber) {
     throw new ApiError(400, "INVALID_STUDENT_DATA", "Ad Soyad ve Öğrenci Numarası zorunludur.");
@@ -366,14 +373,48 @@ export async function addCourseStudent(
   });
 
   if (existing) {
-    throw new ApiError(409, "ENROLLMENT_ALREADY_EXISTS", "Bu öğrenci numarası zaten derste kayıtlı.");
+    if (!existing.archivedAt) {
+      throw new ApiError(409, "ENROLLMENT_ALREADY_EXISTS", "Bu öğrenci numarası zaten derste kayıtlı.");
+    }
+    return prisma.$transaction(async (tx) => {
+      const restored = await tx.enrollment.update({
+        where: { id: existing.id },
+        data: {
+          fullNameOnList: fullName,
+          normalizedNameOnList: normalizedName,
+          isMandatory,
+          archivedAt: null,
+        },
+        include: {
+          matchedUser: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              schoolNumber: true,
+            },
+          },
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: teacherId,
+          action: "ENROLLMENT_RESTORED",
+          entityType: "Enrollment",
+          entityId: restored.id,
+          before: { archivedAt: existing.archivedAt },
+          after: { courseId, fullName, schoolNumber, isMandatory, archivedAt: null },
+          ...context,
+        },
+      });
+      return restored;
+    });
   }
-
-  const normalizedName = normalizePersonName(fullName);
 
   const studentCandidates = await prisma.user.findMany({
     where: {
-      role: "STUDENT",
+      roles: { has: "STUDENT" },
       schoolNumber,
     },
     select: { id: true, schoolNumber: true, normalizedName: true },
@@ -488,7 +529,7 @@ export async function updateCourseStudent(
   ) {
     const studentCandidates = await prisma.user.findMany({
       where: {
-        role: "STUDENT",
+        roles: { has: "STUDENT" },
         schoolNumber: newSchoolNumber,
       },
       select: { id: true, schoolNumber: true, normalizedName: true },
@@ -574,15 +615,15 @@ export async function deleteCourseStudent(
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.attendanceAttempt.deleteMany({ where: { enrollmentId } });
-    await tx.qrScanLog.deleteMany({ where: { enrollmentId } });
-    await tx.attendanceRecord.deleteMany({ where: { enrollmentId } });
-    await tx.enrollment.delete({ where: { id: enrollmentId } });
+    await tx.enrollment.update({
+      where: { id: enrollmentId },
+      data: { archivedAt: new Date() },
+    });
 
     await tx.auditLog.create({
       data: {
         actorId: teacherId,
-        action: "ENROLLMENT_DELETED",
+        action: "ENROLLMENT_ARCHIVED",
         entityType: "Enrollment",
         entityId: enrollmentId,
         before: {

@@ -6,7 +6,13 @@ import Credentials from "next-auth/providers/credentials";
 import type { UserRole } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import { googleProfileName } from "@/lib/auth/google-profile";
-import { hashPassword, safeEqualText, verifyPassword } from "@/lib/auth/password";
+import { verifyPassword } from "@/lib/auth/password";
+import {
+  canUseStudentMode,
+  hasRole,
+  resolveSessionRole,
+  type LoginMode,
+} from "@/lib/auth/role-policy";
 
 function sanitizePictureForToken(image?: string | null): string | undefined {
   if (!image) return undefined;
@@ -23,13 +29,13 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET,
+      allowDangerousEmailAccountLinking: true,
       profile(profile) {
         return {
           id: profile.sub,
           name: googleProfileName(profile),
           email: profile.email,
           image: profile.picture,
-          role: "STUDENT",
         };
       },
     }),
@@ -52,101 +58,42 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
         // ── Admin Girişi ──
         if (portalRole === "admin") {
-          const configuredAdminEmail = (
-            process.env.ADMIN_EMAIL ?? "admin@example.edu.tr"
-          )
-            .trim()
-            .toLowerCase();
-          const configuredAdminPassword = process.env.ADMIN_PASSWORD;
-
-          let user = await prisma.user.findUnique({ where: { email } });
-
-          const isConfiguredAdminEmail =
-            email === configuredAdminEmail ||
-            email === "admin@example.edu.tr" ||
-            email === "admin@mu.edu.tr";
-
-          if (!isConfiguredAdminEmail && user?.role !== "ADMIN") {
+          const user = await prisma.user.findUnique({ where: { email } });
+          if (!user || !hasRole(user.roles, "ADMIN") || !user.passwordHash) {
             throw new Error("Yönetici e-posta adresi veya şifresi geçersiz.");
           }
 
-          let passwordValid = false;
-          if (user?.passwordHash) {
-            passwordValid = await verifyPassword(password, user.passwordHash);
-          }
-          if (!passwordValid && configuredAdminPassword) {
-            passwordValid = safeEqualText(password, configuredAdminPassword);
-          }
-          // Henüz veritabanında şifresi oluşturulmamış ilk admin girişi ise şifreyi kaydet
-          if (!passwordValid && !user?.passwordHash && isConfiguredAdminEmail) {
-            passwordValid = true;
-          }
-
-          if (!passwordValid) {
+          if (!(await verifyPassword(password, user.passwordHash))) {
             throw new Error("Yönetici e-posta adresi veya şifresi geçersiz.");
-          }
-
-          const newPasswordHash = user?.passwordHash ?? (await hashPassword(password));
-
-          if (!user) {
-            user = await prisma.user.create({
-              data: {
-                email,
-                name: "Sistem Yöneticisi",
-                role: "ADMIN",
-                emailVerified: new Date(),
-                passwordHash: newPasswordHash,
-                passwordChangedAt: new Date(),
-              },
-            });
-          } else if (user.role !== "ADMIN" || !user.passwordHash) {
-            user = await prisma.user.update({
-              where: { id: user.id },
-              data: {
-                role: "ADMIN",
-                passwordHash: newPasswordHash,
-                passwordChangedAt: user.passwordChangedAt ?? new Date(),
-              },
-            });
           }
 
           return {
             id: user.id,
             email: user.email,
             name: user.name ?? "Sistem Yöneticisi",
-            role: user.role,
+            role: "ADMIN" as const,
+            roles: user.roles,
             authVersion: user.authVersion,
           };
         }
 
         // ── Akademik Personel Girişi ──
         if (portalRole === "academic") {
-          let user = await prisma.user.findUnique({ where: { email } });
-          if (!user || user.role !== "TEACHER") {
+          const user = await prisma.user.findUnique({ where: { email } });
+          if (!user || !hasRole(user.roles, "TEACHER") || !user.passwordHash) {
             throw new Error("E-posta adresi veya şifre hatalı.");
           }
 
-          if (!user.passwordHash) {
-            const newHash = await hashPassword(password);
-            user = await prisma.user.update({
-              where: { id: user.id },
-              data: {
-                passwordHash: newHash,
-                passwordChangedAt: new Date(),
-              },
-            });
-          } else {
-            const isValid = await verifyPassword(password, user.passwordHash);
-            if (!isValid) {
-              throw new Error("E-posta adresi veya şifre hatalı.");
-            }
+          if (!(await verifyPassword(password, user.passwordHash))) {
+            throw new Error("E-posta adresi veya şifre hatalı.");
           }
 
           return {
             id: user.id,
             email: user.email,
             name: user.name ?? "Öğretim Elemanı",
-            role: user.role,
+            role: "TEACHER" as const,
+            roles: user.roles,
             authVersion: user.authVersion,
           };
         }
@@ -171,11 +118,14 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       if (account?.provider === "google") {
         const email = (profile?.email ?? user.email)?.trim().toLowerCase();
         if (!email) return false;
+        if (profile && "email_verified" in profile && profile.email_verified !== true) {
+          return false;
+        }
         const existing = await prisma.user.findUnique({
           where: { email },
-          select: { id: true, role: true, name: true },
+          select: { id: true, roles: true, name: true },
         });
-        if (existing && existing.role !== "STUDENT") return false;
+        if (existing && !canUseStudentMode(existing.roles)) return false;
 
         const currentGoogleName = googleProfileName(profile ?? {});
         if (existing && currentGoogleName && existing.name !== currentGoogleName) {
@@ -191,23 +141,26 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     async jwt({ token, user, account }) {
       if (user) {
         token.sub = user.id;
-        // Google ile giriş yalnızca öğrenci içindir, e-posta/şifre (credentials) ise Akademik/Admin içindir
-        const targetRole: UserRole =
-          account?.provider === "google"
-            ? "STUDENT"
-            : ((user as { role?: UserRole }).role ?? "TEACHER");
+        const assignedRoles = (user as { roles?: UserRole[] }).roles ?? [
+          (user as { role?: UserRole }).role ?? "STUDENT",
+        ];
+        const requestedRole = (user as { role?: UserRole }).role;
+        const loginMode: LoginMode = account?.provider === "google" ? "google" : "credentials";
 
-        token.role = targetRole;
+        token.loginMode = loginMode;
+        token.roles = assignedRoles;
+        token.role = resolveSessionRole(assignedRoles, loginMode, requestedRole);
         token.authVersion = (user as { authVersion?: number }).authVersion ?? 0;
         token.picture = sanitizePictureForToken(user.image);
       } else if (token.sub) {
         const databaseUser = await prisma.user.findUnique({
           where: { id: token.sub },
-          select: { role: true, image: true, email: true, authVersion: true },
+          select: { roles: true, image: true, email: true, authVersion: true },
         });
         if (!databaseUser) {
           delete token.sub;
           delete token.role;
+          delete token.roles;
           delete token.name;
           delete token.email;
           delete token.picture;
@@ -218,6 +171,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         if (token.authVersion !== databaseUser.authVersion) {
           delete token.sub;
           delete token.role;
+          delete token.roles;
           delete token.name;
           delete token.email;
           delete token.picture;
@@ -225,7 +179,24 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           return token;
         }
 
-        token.role = databaseUser.role;
+        const activeRole = resolveSessionRole(
+          databaseUser.roles,
+          token.loginMode as LoginMode | undefined,
+          token.role as UserRole | undefined,
+        );
+        if (!activeRole) {
+          delete token.sub;
+          delete token.role;
+          delete token.roles;
+          delete token.name;
+          delete token.email;
+          delete token.picture;
+          delete token.authVersion;
+          return token;
+        }
+
+        token.role = activeRole;
+        token.roles = databaseUser.roles;
         token.picture = sanitizePictureForToken(databaseUser.image);
       }
 
@@ -235,6 +206,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       if (session.user && token.sub) {
         session.user.id = token.sub;
         session.user.role = token.role as UserRole;
+        session.user.roles = (token.roles as UserRole[] | undefined) ?? [];
         if (token.picture) {
           session.user.image = token.picture as string;
         }
