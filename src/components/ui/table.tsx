@@ -3,11 +3,17 @@ import { cn } from "@/lib/cn";
 type TableProps = {
   className?: string;
   children: React.ReactNode;
+  ariaLabel?: string;
 };
 
-export function Table({ className, children }: TableProps) {
+export function Table({ className, children, ariaLabel = "Tablo" }: TableProps) {
   return (
-    <div className={cn("overflow-x-auto", className)}>
+    <div
+      role="region"
+      aria-label={ariaLabel}
+      tabIndex={0}
+      className={cn("overflow-x-auto overscroll-x-contain focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", className)}
+    >
       <table className="w-full text-left">{children}</table>
     </div>
   );
@@ -50,18 +56,15 @@ export function Td({ className, children }: { className?: string; children: Reac
 
 export function TableRow({
   className,
-  onClick,
   children,
 }: {
   className?: string;
-  onClick?: () => void;
   children: React.ReactNode;
 }) {
   return (
     <tr
-      onClick={onClick}
       className={cn(
-        "group border-b border-outline-variant last:border-b-0 transition-all duration-200 hover:bg-surface-container-low",
+        "group border-b border-outline-variant last:border-b-0 transition-colors duration-150 hover:bg-surface-container-low",
         className,
       )}
     >

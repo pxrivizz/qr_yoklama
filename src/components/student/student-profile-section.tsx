@@ -25,7 +25,7 @@ export function StudentProfileSection({ student }: StudentProfileSectionProps) {
       aria-labelledby="student-profile-heading"
       className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-[0_8px_24px_rgba(25,28,30,0.06)]"
     >
-      <header className="flex flex-col gap-3 border-b border-outline-variant bg-surface-container-low/55 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <header className="flex flex-col gap-3 border-b border-outline-variant bg-surface-container-low/55 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-5">
         <div className="flex min-w-0 items-start gap-3">
           <div className="grid size-10 shrink-0 place-items-center rounded-lg border border-outline-variant bg-surface-container-lowest text-primary shadow-sm">
             <MaterialIcon name="badge" className="text-xl" />
@@ -49,11 +49,11 @@ export function StudentProfileSection({ student }: StudentProfileSectionProps) {
       </header>
 
       <div className="grid md:grid-cols-[1.15fr_0.85fr]">
-        <div className="px-5 py-5 sm:px-6 sm:py-6">
+        <div className="px-4 py-4 sm:px-5 sm:py-5">
           <StudentPhotoUpload currentImage={student.image} />
         </div>
 
-        <div className="border-t border-outline-variant px-5 py-5 sm:px-6 sm:py-6 md:border-l md:border-t-0">
+        <div className="border-t border-outline-variant px-4 py-4 sm:px-5 sm:py-5 md:border-l md:border-t-0">
           {isNumberVerified ? (
             <div className="grid h-full content-start gap-4">
               <div className="flex flex-wrap items-start justify-between gap-3">

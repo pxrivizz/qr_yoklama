@@ -232,11 +232,11 @@ export function ManualAttendanceForm({
           <>
             <label className="font-label-sm text-label-sm text-on-surface">
               Yoklama tarihi
-              <input type="date" disabled={loadingSlot || pending} value={sessionDate} onChange={(event) => changeSessionDate(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-md text-body-md disabled:opacity-60" />
+              <input type="date" disabled={loadingSlot || pending} value={sessionDate} onChange={(event) => changeSessionDate(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-surface-container-lowest px-3 font-body-md text-body-md disabled:opacity-60" />
             </label>
             <label className="font-label-sm text-label-sm text-on-surface">
               Ders sırası
-              <select disabled={loadingSlot || pending || selectedDayLessonCount === 0} value={lessonPeriod} onChange={(event) => changeLessonPeriod(Number(event.target.value))} className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-md text-body-md disabled:opacity-60">
+              <select disabled={loadingSlot || pending || selectedDayLessonCount === 0} value={lessonPeriod} onChange={(event) => changeLessonPeriod(Number(event.target.value))} className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-surface-container-lowest px-3 font-body-md text-body-md disabled:opacity-60">
                 {selectedDayLessonCount === 0 ? (
                   <option value={1}>Seçilen gün ders yok</option>
                 ) : Array.from({ length: selectedDayLessonCount }, (_, index) => index + 1).map((period) => <option key={period} value={period}>{period}. ders</option>)}
@@ -247,13 +247,13 @@ export function ManualAttendanceForm({
           <>
             <label className="font-label-sm text-label-sm text-on-surface">
               Hafta
-              <select disabled={loadingSlot || pending} value={weekNumber} onChange={(event) => changeWeek(Number(event.target.value))} className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-md text-body-md disabled:opacity-60">
+              <select disabled={loadingSlot || pending} value={weekNumber} onChange={(event) => changeWeek(Number(event.target.value))} className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-surface-container-lowest px-3 font-body-md text-body-md disabled:opacity-60">
                 {Array.from({ length: totalWeeks }, (_, index) => index + 1).map((week) => <option key={week} value={week}>Hafta {week}</option>)}
               </select>
             </label>
             <label className="font-label-sm text-label-sm text-on-surface">
               Ders oturumu
-              <select disabled={loadingSlot || pending} value={sessionIndexInWeek} onChange={(event) => changeSession(Number(event.target.value))} className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-md text-body-md disabled:opacity-60">
+              <select disabled={loadingSlot || pending} value={sessionIndexInWeek} onChange={(event) => changeSession(Number(event.target.value))} className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-surface-container-lowest px-3 font-body-md text-body-md disabled:opacity-60">
                 {Array.from({ length: weeklySessionCount }, (_, index) => index + 1).map((sessionIndex) => <option key={sessionIndex} value={sessionIndex}>Oturum {sessionIndex}</option>)}
               </select>
             </label>
@@ -292,7 +292,7 @@ export function ManualAttendanceForm({
           <p className="mt-2 font-body-md text-body-md text-on-surface-variant">Ders ayarlarından Excel öğrenci listesini yükleyip tekrar gelin.</p>
         </div>
       ) : (
-        <Table className="[&_table]:min-w-[560px]">
+        <Table ariaLabel="Manuel yoklama öğrenci listesi" className="[&_table]:min-w-[560px]">
           <TableHead>
             <Th>Öğrenci</Th>
             <Th>Okul no</Th>
@@ -366,7 +366,7 @@ export function ManualAttendanceForm({
               required
               disabled={pending || loadingSlot}
               placeholder="Örn. Öğrencinin mazeret belgesi doğrulandı."
-              className="mt-1.5 min-h-20 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 font-body-md text-body-md"
+              className="mt-1.5 min-h-20 w-full rounded-lg border border-outline bg-surface-container-lowest px-3 py-2 font-body-md text-body-md"
             />
           </label>
         </div>

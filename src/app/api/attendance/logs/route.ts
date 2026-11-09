@@ -1,4 +1,4 @@
-import { requireTeacher } from "@/lib/auth/authorization";
+import { requireAdmin } from "@/lib/auth/authorization";
 import { apiErrorResponse, ApiError } from "@/lib/http/api-error";
 import { getQrScanLogs } from "@/lib/attendance/qr-log-service";
 import { z } from "zod";
@@ -36,14 +36,13 @@ const logsQuerySchema = z.object({
 
 export async function GET(request: Request) {
   try {
-    const teacher = await requireTeacher();
+    await requireAdmin();
     const { searchParams } = new URL(request.url);
 
     const { page, pageSize, courseId, search, startDate, endDate, actionType, result } =
       logsQuerySchema.parse(Object.fromEntries(searchParams));
 
     const data = await getQrScanLogs({
-      teacherId: teacher.id,
       courseId,
       search,
       startDate,
@@ -62,11 +61,11 @@ export async function GET(request: Request) {
 
 export async function DELETE() {
   try {
-    await requireTeacher();
+    await requireAdmin();
     throw new ApiError(
       403,
       "LOG_DELETE_FORBIDDEN",
-      "QR okutma logları sistem denetim ve güvenlik politikası gereği öğretmenler tarafından silinemez.",
+      "QR okutma logları sistem denetim ve güvenlik politikası gereği silinemez.",
     );
   } catch (error) {
     return apiErrorResponse(error);

@@ -5,7 +5,8 @@ import { LegalPage } from "@/components/legal/legal-page";
 import { KVKK_NOTICE_ENABLED } from "@/lib/legal/documents";
 
 export const metadata: Metadata = {
-  title: "KVKK Aydınlatma Metni | DersDevam",
+  title: "KVKK Aydınlatma Metni",
+  alternates: { canonical: "/kvkk" },
   description: "DersDevam kapsamında işlenen kişisel verilere ilişkin aydınlatma metni.",
 };
 

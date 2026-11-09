@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { LegalPage } from "@/components/legal/legal-page";
 
 export const metadata: Metadata = {
-  title: "Kullanım Koşulları | DersDevam",
+  title: "Kullanım Koşulları",
+  alternates: { canonical: "/kullanim-kosullari" },
   description: "DersDevam hizmetinin güvenli ve doğru kullanımına ilişkin koşullar.",
 };
 
@@ -14,6 +15,7 @@ export default function TermsPage() {
     <LegalPage
       title="Kullanım Koşulları"
       summary="DersDevam’ın yoklama ve ders yönetimi özelliklerini güvenli, doğru ve yetkili şekilde kullanmak için temel kuralları açıklar."
+      notice="Bu koşullar; öğrenci, öğretim elemanı ve yöneticilerin hesaplarını kendi yetkileri kapsamında kullanmasını ve yoklama kayıtlarının doğruluğunu korumasını amaçlar."
       sections={[
         {
           id: "kapsam",

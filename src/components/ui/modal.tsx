@@ -52,7 +52,7 @@ export function Modal({ open, onClose, title, description, children, className }
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
       className={cn(
-        "m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-3xl overflow-visible bg-transparent p-0 text-on-surface backdrop:bg-primary/40 backdrop:backdrop-blur-sm",
+        "m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-none overflow-visible bg-transparent p-0 text-on-surface backdrop:bg-primary/40 backdrop:backdrop-blur-sm",
         closing ? "modal-is-closing" : "modal-is-opening",
       )}
       onCancel={(event) => {
@@ -65,7 +65,7 @@ export function Modal({ open, onClose, title, description, children, className }
     >
       <div
         className={cn(
-          "mx-auto max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-lowest shadow-[0_24px_80px_rgba(0,20,45,0.24)]",
+          "mx-auto max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto overscroll-contain rounded-xl border border-outline-variant bg-surface-container-lowest shadow-[0_24px_80px_rgba(0,20,45,0.24)]",
           className,
         )}
       >

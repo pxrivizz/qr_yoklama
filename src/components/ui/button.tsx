@@ -2,15 +2,15 @@ import { cn } from "@/lib/cn";
 
 const variants = {
   primary:
-    "rounded-lg bg-neutral-900 text-white font-medium hover:bg-neutral-800 transition-colors shadow-none",
+    "rounded-lg bg-primary text-on-primary font-medium hover:bg-primary-container transition-colors shadow-none",
   secondary:
-    "rounded-lg border border-neutral-200 bg-white text-neutral-800 hover:bg-neutral-50 transition-colors shadow-none",
+    "rounded-lg border border-outline bg-surface-container-lowest text-on-surface hover:bg-surface-container-low transition-colors shadow-none",
   ghost:
-    "rounded-md text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors",
+    "rounded-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors",
   danger:
-    "rounded-md text-neutral-500 hover:text-red-600 hover:bg-red-50 transition-colors",
+    "rounded-md text-error hover:text-error hover:bg-error-container/40 transition-colors",
   critical:
-    "rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-colors shadow-none",
+    "rounded-xl bg-error text-on-error font-medium hover:bg-on-error-container transition-colors shadow-none",
 } as const;
 
 const sizes = {

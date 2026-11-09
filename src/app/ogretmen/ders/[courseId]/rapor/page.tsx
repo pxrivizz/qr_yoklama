@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import { TeacherLayout } from "@/components/layout/teacher-layout";
+import { PageContainer } from "@/components/layout/page-container";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,7 +33,12 @@ const statusClasses: Record<AttendanceStatus, string> = {
 
 
 function sessionDate(date: Date) {
-  return new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" }).format(date);
+  return new Intl.DateTimeFormat("tr-TR", {
+    timeZone: "Europe/Istanbul",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
 }
 
 function sessionTitle(session: {
@@ -42,8 +48,8 @@ function sessionTitle(session: {
   sessionDate: Date | null;
   lessonPeriod: number | null;
 }) {
-  if (session.slotType === "CALENDAR_PERIOD" && session.sessionDate && session.lessonPeriod) {
-    return `${sessionDate(session.sessionDate)} · ${session.lessonPeriod}. Ders`;
+  if (session.slotType === "CALENDAR_PERIOD" && session.lessonPeriod) {
+    return `${session.lessonPeriod}. Ders`;
   }
   return `H${session.weekNumber} · O${session.sessionIndexInWeek}`;
 }
@@ -63,7 +69,7 @@ export default async function AttendanceReportPage({
       userName={teacher.name ?? teacher.email}
       pageTitle="Yoklama raporu"
     >
-      <div className="animate-fade-in-up mx-auto max-w-container-max-width px-6 py-stack-lg sm:px-margin-page">
+      <PageContainer width="wide">
         <Link
           href={`/ogretmen/ders/${courseId}`}
           className="inline-flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant transition-colors duration-200 hover:text-on-surface"
@@ -71,7 +77,7 @@ export default async function AttendanceReportPage({
           <MaterialIcon name="arrow_back" /> Ders ayarları
         </Link>
 
-        <div className="mt-5 flex flex-col gap-5 border-b border-outline-variant/60 pb-7 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mt-4 flex flex-col gap-4 border-b border-outline-variant/60 pb-5 sm:flex-row sm:items-end sm:justify-between sm:pb-6">
           <div>
             <p className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">{report.course.code}</p>
             <h1 className="mt-1 font-h1 text-h1 text-on-surface">Yoklama raporu</h1>
@@ -94,7 +100,7 @@ export default async function AttendanceReportPage({
           </div>
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-x-8 gap-y-3 border-y border-outline-variant/60 py-4 font-body-md text-body-md text-on-surface-variant">
+        <div className="mt-5 flex flex-wrap gap-x-8 gap-y-3 border-y border-outline-variant/60 py-4 font-body-md text-body-md text-on-surface-variant">
           <span><strong className="text-on-surface">{report.summary.sessionCount}</strong> tamamlanan oturum</span>
           <span><strong className="text-on-surface">{report.summary.studentCount}</strong> öğrenci</span>
           <span><strong className="text-secondary">%{report.summary.averageAttendanceRate}</strong> ortalama katılım</span>
@@ -104,7 +110,7 @@ export default async function AttendanceReportPage({
         </div>
 
         {report.sessions.length === 0 ? (
-          <Card className="mt-6">
+          <Card className="mt-5">
             <EmptyState
               title="Henüz tamamlanmış yoklama yok"
               description="İlk QR veya manuel yoklamayı tamamladığınızda öğrenci katılımları burada karşılaştırmalı olarak görünür."
@@ -112,7 +118,7 @@ export default async function AttendanceReportPage({
             />
           </Card>
         ) : report.rows.length === 0 ? (
-          <Card className="mt-6">
+          <Card className="mt-5">
             <EmptyState
               title="Dersin öğrenci listesi boş"
               description="Rapor oluşturabilmek için ders ayarlarından Excel öğrenci listesini yükleyin."
@@ -120,8 +126,8 @@ export default async function AttendanceReportPage({
             />
           </Card>
         ) : (
-          <Card className="mt-6 overflow-hidden">
-            <div className="border-b border-outline-variant px-5 py-4 sm:flex sm:items-center sm:justify-between sm:px-6">
+          <Card className="mt-5 overflow-hidden">
+            <div className="border-b border-outline-variant px-4 py-4 sm:flex sm:items-center sm:justify-between sm:px-5">
               <div>
                 <h2 className="font-h3 text-h3 text-on-surface">Öğrenci katılımları</h2>
                 <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
@@ -134,18 +140,19 @@ export default async function AttendanceReportPage({
                 </Badge>
               )}
             </div>
-            <Table>
+            <Table ariaLabel="Ders yoklama raporu">
               <TableHead>
                 <Th className="sticky left-0 z-10 min-w-56 bg-surface-container-low">Öğrenci</Th>
                 {report.sessions.map((attendanceSession) => (
                   <Th key={attendanceSession.id} className="min-w-24 text-center normal-case tracking-normal">
                     <span className="block text-on-surface">{sessionTitle(attendanceSession)}</span>
-                    <span className="mt-0.5 block font-normal">{sessionDate(attendanceSession.startedAt)}</span>
+                    <span className="mt-0.5 block whitespace-nowrap font-normal">
+                      {sessionDate(attendanceSession.sessionDate ?? attendanceSession.startedAt)}
+                    </span>
                   </Th>
                 ))}
-                <Th className="text-center">Var</Th>
-                <Th className="text-center">Yok</Th>
-                <Th className="text-center">Katılım</Th>
+                <Th className="text-center">Katılmadı</Th>
+                <Th className="min-w-28 text-center">Toplam katılım</Th>
               </TableHead>
               <TableBody>
                 {report.rows.map((row) => (
@@ -180,16 +187,20 @@ export default async function AttendanceReportPage({
                         </span>
                       </Td>
                     ))}
-                    <Td className="text-center tabular-nums font-medium text-secondary">{row.presentCount}</Td>
                     <Td className="text-center tabular-nums text-error">{row.absentCount}</Td>
-                    <Td className="text-center font-medium tabular-nums text-on-surface">%{row.attendanceRate}</Td>
+                    <Td className="text-center tabular-nums">
+                      <span className="font-medium text-on-surface">
+                        {row.presentCount} / {report.summary.sessionCount}
+                      </span>
+                      <span className="ml-1.5 text-on-surface-variant">%{row.attendanceRate}</span>
+                    </Td>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </Card>
         )}
-      </div>
+      </PageContainer>
     </TeacherLayout>
   );
 }

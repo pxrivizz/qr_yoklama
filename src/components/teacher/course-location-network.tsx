@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/ui/icons";
 import { StatusMessage } from "@/components/ui/status-message";
 import { geolocationErrorMessage } from "@/lib/browser/geolocation-error";
+import { cn } from "@/lib/cn";
 import {
   CAMPUS_LOCATION_PRESETS,
   DEFAULT_CAMPUS_NETWORK_CIDR,
@@ -20,6 +21,7 @@ type CourseLocationNetworkProps = {
   radiusMeters: number;
   onLocationChange: (latitude: number, longitude: number) => void;
   onIpAddressChange: (cidr: string) => void;
+  compact?: boolean;
 };
 
 type UpdateStatus = {
@@ -59,6 +61,7 @@ export function CourseLocationNetwork({
   radiusMeters,
   onLocationChange,
   onIpAddressChange,
+  compact = false,
 }: CourseLocationNetworkProps) {
   const [pending, setPending] = useState(false);
   const [accuracyMeters, setAccuracyMeters] = useState<number>();
@@ -168,7 +171,10 @@ export function CourseLocationNetwork({
   }
 
   return (
-    <section className="grid gap-4 rounded-xl bg-surface-container-low p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.9fr)]">
+    <section className={cn(
+      "grid gap-4 rounded-xl bg-surface-container-low p-4 sm:p-5",
+      compact ? "rounded-none bg-transparent p-0 sm:p-0" : "lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.9fr)]",
+    )}>
       <div className="flex min-w-0 flex-col justify-between gap-4">
         <div>
           <div className="flex items-start gap-3">
@@ -189,7 +195,7 @@ export function CourseLocationNetwork({
               id="campus-location-preset"
               value={selectedLocation?.id ?? ""}
               onChange={(event) => selectCampusLocation(event.target.value)}
-              className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-md text-body-md text-on-surface outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/25"
+              className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-surface-container-lowest px-3 font-body-md text-body-md text-on-surface outline-none transition-[border-color,box-shadow] duration-150 focus:border-primary focus:ring-2 focus:ring-primary/25"
             >
               <option value="">Başka bir konum</option>
               <optgroup label="Kötekli Merkez Yerleşkesi">
@@ -208,11 +214,11 @@ export function CourseLocationNetwork({
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <div>
               <dt className="text-on-surface-variant">Enlem</dt>
-              <dd className="mt-0.5 truncate font-medium tabular-nums text-on-surface">{latitude.toFixed(6)}</dd>
+              <dd className="mt-0.5 truncate font-medium tabular-nums text-on-surface">{latitude.toFixed(4)}</dd>
             </div>
             <div>
               <dt className="text-on-surface-variant">Boylam</dt>
-              <dd className="mt-0.5 truncate font-medium tabular-nums text-on-surface">{longitude.toFixed(6)}</dd>
+              <dd className="mt-0.5 truncate font-medium tabular-nums text-on-surface">{longitude.toFixed(4)}</dd>
             </div>
           </dl>
           {accuracyMeters !== undefined && (
@@ -241,7 +247,10 @@ export function CourseLocationNetwork({
 
       <div className="overflow-hidden rounded-lg bg-surface-container-lowest">
         <div
-          className="relative h-56 overflow-hidden bg-surface-container lg:h-[calc(100%-2.75rem)] lg:min-h-64"
+          className={cn(
+            "relative h-56 overflow-hidden bg-surface-container",
+            compact ? "sm:h-64" : "lg:h-[calc(100%-2.75rem)] lg:min-h-64",
+          )}
           role="img"
           aria-label={`Ders konumu ve ${Math.round(radiusMeters)} metre yoklama alanı`}
         >
@@ -299,7 +308,7 @@ export function CourseLocationNetwork({
       </div>
 
       {status && (
-        <StatusMessage variant={status.variant} className="lg:col-span-2">
+        <StatusMessage variant={status.variant} className={compact ? undefined : "lg:col-span-2"}>
           {status.text}
         </StatusMessage>
       )}

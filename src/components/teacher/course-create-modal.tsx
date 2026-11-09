@@ -15,10 +15,12 @@ import { importedCourseName } from "@/lib/courses/imported-course-name";
 export function CourseCreateModal() {
   const [open, setOpen] = useState(false);
   const [preparedImport, setPreparedImport] = useState<PreparedCourseImport>();
+  const [activeSection, setActiveSection] = useState("#new-course-details");
 
   function closeModal() {
     setOpen(false);
     setPreparedImport(undefined);
+    setActiveSection("#new-course-details");
   }
 
   return (
@@ -29,20 +31,33 @@ export function CourseCreateModal() {
       <Modal
         open={open}
         onClose={closeModal}
-        title="Yeni ders oluştur"
-        description="Excel listesinden ders ve öğrencileri getirin veya bilgileri elle girin."
+        title="Yeni ders ekle"
+        description="Ders bilgilerini ve yoklama kurallarını belirleyin."
+        className="max-w-6xl"
       >
-        <div className="grid gap-6">
-          <CourseExcelImport onPrepared={setPreparedImport} />
-          <div className="flex items-center gap-3" aria-hidden="true">
-            <span className="h-px flex-1 bg-outline-variant" />
-            <span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">
-              Ders bilgileri
-            </span>
-            <span className="h-px flex-1 bg-outline-variant" />
-          </div>
+        <div className="-m-5 sm:-m-6">
+          <nav aria-label="Yeni ders bölümleri" className="flex gap-6 overflow-x-auto border-b border-outline-variant px-4 sm:px-5 lg:px-6">
+            {[
+              ["#new-course-details", "Ders bilgileri"],
+              ["#new-course-location", "Konum ve erişim"],
+              ["#new-course-students", "Öğrenciler"],
+            ].map(([href, label]) => (
+              <a
+                key={href}
+                href={href}
+                onClick={() => setActiveSection(href)}
+                aria-current={activeSection === href ? "location" : undefined}
+                className={`shrink-0 border-b-2 px-1 py-3 font-label-sm text-label-sm transition-colors ${
+                  activeSection === href
+                    ? "border-secondary text-on-surface"
+                    : "border-transparent text-on-surface-variant hover:border-outline hover:text-on-surface"
+                }`}
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
           <CourseForm
-            key={`${preparedImport?.metadata?.courseCode ?? "manual"}-${preparedImport?.file.name ?? "none"}`}
             initialValues={{
               name: importedCourseName(
                 preparedImport?.metadata?.courseName,
@@ -53,6 +68,9 @@ export function CourseCreateModal() {
             enrollmentFile={preparedImport?.file}
             importedStudentCount={preparedImport?.summary.valid}
             onSaved={closeModal}
+            onCancel={closeModal}
+            presentation="create"
+            supplementaryContent={<CourseExcelImport compact onPrepared={setPreparedImport} />}
           />
         </div>
       </Modal>

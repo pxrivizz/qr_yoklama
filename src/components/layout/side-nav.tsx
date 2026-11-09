@@ -16,13 +16,8 @@ type NavItem = {
 };
 
 const mainNavItems: NavItem[] = [
-  { label: "Genel Bakış", href: "/ogretmen", icon: "dashboard" },
+  { label: "Genel bakış", href: "/ogretmen", icon: "dashboard" },
   { label: "Derslerim", href: "/ogretmen/dersler", icon: "menu_book", activePrefix: "/ogretmen/ders" },
-  { label: "Sistem Logları", href: "/ogretmen/loglar", icon: "receipt_long" },
-];
-
-const secondaryNavItems: NavItem[] = [
-  { label: "Hesap Ayarları", href: "/ogretmen/hesap", icon: "manage_accounts" },
 ];
 
 function isActive(pathname: string, item: NavItem) {
@@ -31,15 +26,15 @@ function isActive(pathname: string, item: NavItem) {
 }
 
 type SideNavProps = {
-  userName: string;
-  onSignOut: () => void;
   open?: boolean;
   onClose?: () => void;
-  isImpersonating?: boolean;
 };
 
-export function SideNav({ userName, onSignOut, open = false, onClose, isImpersonating = false }: SideNavProps) {
+export function SideNav({ open = false, onClose }: SideNavProps) {
   const pathname = usePathname();
+  const sidebarRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const openRef = useRef(open);
   useEffect(() => {
@@ -52,16 +47,56 @@ export function SideNav({ userName, onSignOut, open = false, onClose, isImperson
     }
   }, [pathname, onClose]);
 
-  const initials = userName
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toLocaleUpperCase("tr-TR");
+  useEffect(() => {
+    if (!open) return;
+
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose?.();
+        return;
+      }
+      if (event.key !== "Tab" || !sidebarRef.current) return;
+
+      const focusable = Array.from(
+        sidebarRef.current.querySelectorAll<HTMLElement>("a[href], button:not([disabled])"),
+      );
+      const first = focusable[0];
+      const last = focusable.at(-1);
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+      previousFocusRef.current?.focus();
+    };
+  }, [onClose, open]);
 
   const sidebarContent = (
     <div className="flex h-full flex-col bg-[#0b0f17] border-r border-white/[0.08] text-white shadow-2xl lg:shadow-none">
-      <div className="border-b border-white/[0.08] px-6 py-6">
+      <div className="relative border-b border-white/[0.08] px-6 py-6">
+        <button
+          ref={closeButtonRef}
+          type="button"
+          onClick={onClose}
+          className="absolute right-3 top-3 grid size-10 place-items-center rounded-lg text-neutral-300 transition-colors hover:bg-white/[0.08] hover:text-white lg:hidden"
+          aria-label="Menüyü kapat"
+        >
+          <MaterialIcon name="close" className="text-xl" />
+        </button>
         <Link href="/ogretmen" className="flex items-center gap-3 group">
           <BrandMark
             variant="sidebar"
@@ -80,7 +115,7 @@ export function SideNav({ userName, onSignOut, open = false, onClose, isImperson
       </div>
 
       <div className="px-4 pt-4">
-        <p className="px-3 text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+        <p className="px-3 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
           Menü
         </p>
       </div>
@@ -94,7 +129,7 @@ export function SideNav({ userName, onSignOut, open = false, onClose, isImperson
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "group relative flex items-center rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
+                "group relative flex items-center rounded-xl px-3.5 py-2.5 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 ease-out",
                 active
                   ? "bg-white/[0.12] text-white shadow-sm backdrop-blur-md"
                   : "text-neutral-400 hover:bg-white/[0.06] hover:text-white",
@@ -119,50 +154,23 @@ export function SideNav({ userName, onSignOut, open = false, onClose, isImperson
         })}
       </nav>
 
-      <div className="border-t border-white/[0.08] px-3 py-4 space-y-3">
-        <div className="space-y-1">
-          {!isImpersonating && secondaryNavItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="group flex items-center rounded-xl px-3.5 py-2 text-xs font-medium text-neutral-400 transition-all duration-200 ease-out hover:bg-white/[0.06] hover:text-white"
-            >
-              <MaterialIcon
-                name={item.icon}
-                className="mr-3 text-base text-neutral-400 transition-transform duration-200 group-hover:scale-105 group-hover:text-white"
-              />
-              <span>{item.label}</span>
-            </Link>
-          ))}
-        </div>
-
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/10 text-xs font-semibold text-white border border-white/10">
-              {initials || "Ö"}
+      <div className="border-t border-white/[0.08] p-4">
+        <div className="rounded-xl bg-white/[0.045] p-3.5 ring-1 ring-inset ring-white/[0.07]">
+          <div className="flex items-center gap-2.5">
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-emerald-400/10 text-emerald-300">
+              <MaterialIcon name="qr_code_2" className="text-lg" />
             </span>
-            <div className="min-w-0 flex-1">
-              <strong className="block truncate text-xs font-medium text-white">
-                {userName}
-              </strong>
-              <span className="block text-[11px] text-neutral-400 truncate">
-                Öğretim Elemanı
-              </span>
-            </div>
+            <p className="text-xs font-semibold text-white">Sınıf içi yoklama</p>
           </div>
-
-          <form action={onSignOut}>
-            <button
-              type="submit"
-              className="rounded-lg p-1.5 text-neutral-400 transition-colors duration-200 hover:bg-white/10 hover:text-red-400"
-              title="Çıkış Yap"
-              aria-label="Çıkış Yap"
-            >
-              <MaterialIcon name="logout" className="text-lg" />
-            </button>
-          </form>
+          <p className="mt-2.5 text-xs leading-5 text-neutral-400">
+            Ders kartından yoklamayı başlatın ve yenilenen QR kodunu sınıfla paylaşın.
+          </p>
         </div>
+        <p className="mt-3 text-center text-[10px] font-medium uppercase tracking-[0.16em] text-neutral-400">
+          DersDevam · Öğretim Portalı
+        </p>
       </div>
+
     </div>
   );
 
@@ -177,9 +185,13 @@ export function SideNav({ userName, onSignOut, open = false, onClose, isImperson
       )}
 
       <aside
+        ref={sidebarRef}
+        role={open ? "dialog" : undefined}
+        aria-modal={open ? true : undefined}
+        aria-label={open ? "Öğretmen menüsü" : undefined}
         className={cn(
-          "fixed top-0 bottom-0 left-0 z-50 w-sidebar-width transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:translate-x-0 lg:z-20",
-          open ? "translate-x-0 shadow-2xl" : "-translate-x-full",
+          "fixed bottom-0 left-0 top-0 z-50 w-sidebar-width overscroll-contain transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:z-20 lg:visible lg:translate-x-0",
+          open ? "visible translate-x-0 shadow-2xl" : "invisible -translate-x-full",
         )}
       >
         {sidebarContent}

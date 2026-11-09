@@ -75,12 +75,15 @@ export const CAMPUS_LOCATION_PRESETS = [
 export const DEFAULT_CAMPUS_LOCATION = CAMPUS_LOCATION_PRESETS[0];
 export const DEFAULT_CAMPUS_NETWORK_CIDR = "194.27.153.159/8";
 
+function roundCoordinate(value: number) {
+  return Number(value.toFixed(4));
+}
+
 export function findCampusLocationPreset(latitude: number, longitude: number) {
-  const coordinateTolerance = 0.000001;
   return CAMPUS_LOCATION_PRESETS.find(
     (location) =>
-      Math.abs(location.latitude - latitude) <= coordinateTolerance &&
-      Math.abs(location.longitude - longitude) <= coordinateTolerance,
+      roundCoordinate(location.latitude) === roundCoordinate(latitude) &&
+      roundCoordinate(location.longitude) === roundCoordinate(longitude),
   );
 }
 

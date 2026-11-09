@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/ui/icons";
 import { StatusMessage } from "@/components/ui/status-message";
+import { cn } from "@/lib/cn";
 import { importedCourseName } from "@/lib/courses/imported-course-name";
 
 type CourseMetadata = {
@@ -47,8 +48,10 @@ type ApiBody = {
 
 export function CourseExcelImport({
   onPrepared,
+  compact = false,
 }: {
   onPrepared: (value: PreparedCourseImport | undefined) => void;
+  compact?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File>();
@@ -97,16 +100,26 @@ export function CourseExcelImport({
   }
 
   return (
-    <section className="rounded-xl border border-outline-variant bg-surface-container-low p-4 sm:p-5">
+    <section className={cn(
+      "rounded-xl border border-outline-variant bg-surface-container-low p-4 sm:p-5",
+      compact && "border-dashed bg-surface-container-lowest",
+    )}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="font-h3 text-h3 text-on-surface">Öğrencileri içeri aktar</p>
-          <p className="mt-1 max-w-xl font-body-md text-body-md text-on-surface-variant">
-            Üniversite yoklama listesini yükleyin. Ders adı ve kodu bulunursa aşağıdaki forma otomatik aktarılır; tüm alanları değiştirebilirsiniz.
-          </p>
-          <p className="mt-1.5 font-label-sm text-label-sm text-on-surface-variant">
-            Desteklenen kolonlar: <span className="font-medium text-on-surface">Adı Soyadı (veya Ad + Soyad), Öğrenci No, Alış/Ö.Not (veya Zorunlu)</span>. Hazırlık listelerinde Adı, Soyadı ve Öğrenci No yeterlidir.
-          </p>
+        <div className="flex min-w-0 gap-3">
+          {compact && (
+            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary-container text-on-secondary-container" aria-hidden="true">
+              <MaterialIcon name="table_view" />
+            </span>
+          )}
+          <div className="min-w-0">
+            <h3 className="font-h3 text-h3 text-on-surface">Öğrencileri içeri aktar</h3>
+            <p className="mt-1 max-w-xl font-body-md text-body-md text-on-surface-variant">
+              Fakülte kullanıcıları, ilgili dersin karşısındaki “Derse kayıtlı öğrenciler” butonuna basarak Excel formatında indirdikleri listeyi bu alana yüklemelidir. Yabancı Diller Yüksekokulu kullanıcıları ise ders yoklama listesini indirerek sisteme yüklemelidir.
+            </p>
+            <p className="mt-1.5 font-label-sm text-label-sm text-on-surface-variant">
+              Desteklenen kolonlar: <span className="font-medium text-on-surface">Adı Soyadı (veya Ad + Soyad), Öğrenci No, Alış/Ö.Not (veya Zorunlu)</span>. Hazırlık listelerinde Adı, Soyadı ve Öğrenci No yeterlidir.
+            </p>
+          </div>
         </div>
         <Button type="button" variant="secondary" className="shrink-0 gap-2" onClick={() => inputRef.current?.click()}>
           <MaterialIcon name="upload_file" /> Excel seç

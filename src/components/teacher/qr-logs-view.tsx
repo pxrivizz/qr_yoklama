@@ -332,7 +332,7 @@ export function QrLogsView({
               placeholder="Öğrenci adı, soyadı veya öğrenci numarası ile hızlı ara..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-neutral-200 bg-neutral-50/50 py-2.5 pl-10 pr-4 text-sm text-neutral-900 placeholder:text-neutral-400 transition-colors focus:border-neutral-900 focus:bg-white focus:outline-none"
+              className="w-full rounded-xl border border-neutral-400 bg-neutral-50/50 py-2.5 pl-10 pr-4 text-sm text-neutral-900 placeholder:text-neutral-500 transition-colors focus:border-neutral-900 focus:bg-white focus:outline-none"
             />
             {search && (
               <button
@@ -352,7 +352,7 @@ export function QrLogsView({
               onChange={(e) => setCourseId(e.target.value)}
               className="rounded-xl border border-neutral-200 bg-neutral-50/50 px-3.5 py-2.5 text-xs font-medium text-neutral-800 transition-colors focus:border-neutral-900 focus:bg-white focus:outline-none"
             >
-              <option value="">Tüm Dersler / Sınıflar</option>
+              <option value="">Tüm dersler / sınıflar</option>
               {courses.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.code} · {c.name}
@@ -438,7 +438,7 @@ export function QrLogsView({
 
       {/* Masaüstü Tablo Görünümü */}
       <div className="hidden md:block overflow-hidden rounded-xl border border-neutral-200/80 bg-white shadow-sm">
-        <Table>
+        <Table ariaLabel="Sistem okutma kayıtları">
           <TableHead>
             <Th>Öğrenci</Th>
             <Th>Sınıf / Ders</Th>
@@ -472,8 +472,7 @@ export function QrLogsView({
                 return (
                   <TableRow
                     key={item.id}
-                    className="cursor-pointer hover:bg-neutral-50/70 transition-colors"
-                    onClick={() => setSelectedLog(item)}
+                    className="hover:bg-neutral-50/70"
                   >
                     {/* Öğrenci */}
                     <Td>
@@ -577,11 +576,11 @@ export function QrLogsView({
                         size="sm"
                         variant="secondary"
                         className="size-8 min-h-0 p-0 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onClick={() => {
                           setSelectedLog(item);
                         }}
                         title="Tüm detayları incele"
+                        aria-label={`${item.studentName ?? "Bilinmeyen öğrenci"} kaydının detaylarını aç`}
                       >
                         <MaterialIcon name="visibility" className="text-base" />
                       </Button>
@@ -608,10 +607,12 @@ export function QrLogsView({
             const actBadge = getActionTypeBadge(item.actionType);
 
             return (
-              <div
+              <button
+                type="button"
                 key={item.id}
                 onClick={() => setSelectedLog(item)}
-                className="rounded-xl border border-neutral-200/80 bg-white p-4 shadow-sm space-y-2.5 active:bg-neutral-50 cursor-pointer"
+                className="w-full cursor-pointer space-y-2.5 rounded-xl border border-neutral-200/80 bg-white p-4 text-left shadow-sm transition-colors hover:bg-neutral-50 active:bg-neutral-100"
+                aria-label={`${item.studentName ?? "Bilinmeyen öğrenci"} kaydının detaylarını aç`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5">
@@ -649,7 +650,7 @@ export function QrLogsView({
                     Detay <MaterialIcon name="chevron_right" className="text-sm" />
                   </span>
                 </div>
-              </div>
+              </button>
             );
           })
         )}

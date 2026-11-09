@@ -18,7 +18,7 @@ export default async function AttendanceQrPage({ params }: PageProps) {
 
   return (
     <main className="flex min-h-dvh flex-col bg-surface-container-lowest">
-      <QrDisplay courseId={courseId} />
+      <QrDisplay key={courseId} courseId={courseId} />
     </main>
   );
 }

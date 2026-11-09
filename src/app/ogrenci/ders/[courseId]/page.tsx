@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { auth, signOut } from "@/auth";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { PageContainer } from "@/components/layout/page-container";
 import { MaterialIcon } from "@/components/ui/icons";
 import { StudentNotifications } from "@/components/student/student-notifications";
 import { CourseDetailView } from "@/components/student/course-detail-view";
@@ -39,7 +40,7 @@ export default async function StudentCourseDetailPage({ params }: PageProps) {
     <main className="min-h-dvh bg-background">
       {/* Header */}
       <header className="border-b border-outline-variant bg-surface-container-lowest/80 backdrop-blur-lg sticky top-0 z-20">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/ogrenci" className="flex min-w-0 shrink items-center gap-2 font-h3 text-h3 text-primary">
             <BrandMark className="size-8" priority />
             <span className="truncate text-sm font-bold sm:text-base">DersDevam</span>
@@ -89,9 +90,9 @@ export default async function StudentCourseDetailPage({ params }: PageProps) {
 
 
       {/* Main Content */}
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
+      <PageContainer width="compact">
         <CourseDetailView initialData={detail} />
-      </div>
+      </PageContainer>
     </main>
   );
 }

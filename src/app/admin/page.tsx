@@ -4,6 +4,7 @@ import { signOut } from "@/auth";
 import { AdminAccountManager } from "@/components/admin/admin-account-manager";
 import { AdminOverview } from "@/components/admin/admin-overview";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { PageContainer } from "@/components/layout/page-container";
 import { TeacherManager } from "@/components/admin/teacher-manager";
 import { BugReportsView } from "@/components/teacher/bug-reports-view";
 import { getAdminDashboardOverview, listAdmins, listTeachers } from "@/lib/admin/service";
@@ -34,7 +35,7 @@ export default async function AdminPage() {
 
   return (
     <AdminShell email={admin.email} onSignOut={handleSignOut}>
-      <div className="mx-auto max-w-[1320px] space-y-12 px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
+      <PageContainer width="wide" className="space-y-12">
         <AdminOverview
           stats={overview}
           unresolvedReportCount={unresolvedReportCount}
@@ -65,7 +66,7 @@ export default async function AdminPage() {
           </div>
           <AdminAccountManager currentAdminId={admin.id} initialAdmins={admins} />
         </section>
-      </div>
+      </PageContainer>
     </AdminShell>
   );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { TeacherLayout } from "@/components/layout/teacher-layout";
+import { PageContainer } from "@/components/layout/page-container";
 import { Card } from "@/components/ui/card";
 import { MaterialIcon } from "@/components/ui/icons";
 import { ManualAttendanceForm } from "@/components/teacher/manual-attendance-form";
@@ -24,11 +25,11 @@ export default async function ManualAttendancePage({
       userName={teacher.name ?? teacher.email}
       pageTitle="Manuel yoklama"
     >
-      <div className="animate-fade-in-up mx-auto max-w-5xl px-6 py-stack-lg sm:px-margin-page">
+      <PageContainer>
         <Link href="/ogretmen/dersler" className="inline-flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant transition-colors duration-200 hover:text-on-surface">
           <MaterialIcon name="arrow_back" /> Derslerim
         </Link>
-        <div className="mb-7 mt-5 sm:flex sm:items-end sm:justify-between">
+        <div className="mb-5 mt-4 sm:flex sm:items-end sm:justify-between sm:gap-4">
           <div>
             <p className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">{course.code}</p>
             <h1 className="mt-1 font-h1 text-h1 text-on-surface">Manuel yoklama</h1>
@@ -54,7 +55,7 @@ export default async function ManualAttendancePage({
             initialSession={initialSession}
           />
         </Card>
-      </div>
+      </PageContainer>
     </TeacherLayout>
   );
 }

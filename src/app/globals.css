@@ -4,7 +4,7 @@
   font-family: "Material Symbols Outlined";
   font-style: normal;
   font-weight: 400;
-  font-display: block;
+  font-display: swap;
   src: url("https://fonts.gstatic.com/s/materialsymbolsoutlined/v364/kJF1BvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oDMzByHX9rA6RzaxHMPdY43zj-jCxv3fzvRNU22ZXGJpEpjC_1v-p_4MrImHCIJIZrDCvHOem.ttf") format("truetype");
 }
 
@@ -154,6 +154,18 @@ body {
   font-family: var(--font-sans);
 }
 
+html {
+  scroll-padding-top: 5rem;
+}
+
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 h1,
 h2,
 h3,
@@ -266,7 +278,7 @@ a {
 @keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(8px);
   }
 
   to {
@@ -276,12 +288,12 @@ a {
 }
 
 .animate-fade-in-up {
-  animation: fade-in-up 400ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation: fade-in-up 220ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
 /* ── Staggered children entrance ── */
 .stagger-children>* {
-  animation: fade-in-up 400ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation: fade-in-up 220ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
 .stagger-children>*:nth-child(1) {
@@ -289,31 +301,31 @@ a {
 }
 
 .stagger-children>*:nth-child(2) {
-  animation-delay: 60ms;
+  animation-delay: 40ms;
 }
 
 .stagger-children>*:nth-child(3) {
-  animation-delay: 120ms;
+  animation-delay: 80ms;
 }
 
 .stagger-children>*:nth-child(4) {
-  animation-delay: 180ms;
+  animation-delay: 120ms;
 }
 
 .stagger-children>*:nth-child(5) {
-  animation-delay: 240ms;
+  animation-delay: 160ms;
 }
 
 .stagger-children>*:nth-child(6) {
-  animation-delay: 300ms;
+  animation-delay: 200ms;
 }
 
 .stagger-children>*:nth-child(7) {
-  animation-delay: 360ms;
+  animation-delay: 240ms;
 }
 
 .stagger-children>*:nth-child(8) {
-  animation-delay: 420ms;
+  animation-delay: 280ms;
 }
 
 /* ── Live pulse ── */
@@ -661,6 +673,11 @@ dialog.modal-is-closing>div {
 
 /* ─── Accessibility ─── */
 
+@keyframes fade-in-reduced {
+  from { opacity: 0.72; }
+  to { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
 
   *,
@@ -670,6 +687,14 @@ dialog.modal-is-closing>div {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .animate-fade-in-up,
+  .stagger-children > * {
+    animation-delay: 0ms !important;
+    animation-duration: 160ms !important;
+    animation-name: fade-in-reduced !important;
+    transform: none !important;
   }
 
   .card-hover:hover {

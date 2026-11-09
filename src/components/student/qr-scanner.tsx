@@ -10,7 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/cn";
 import { geolocationErrorMessage } from "@/lib/browser/geolocation-error";
 import {
-  decodeQrFromVideo,
+  decodeAttendanceQrFromVideo,
   getCameraTorchCapability,
   getCameraZoomCapability,
   OPTIMAL_CAMERA_CONSTRAINTS,
@@ -61,7 +61,13 @@ type PositionSnapshot = {
   capturedAt: number;
 };
 
-export function QrScanner({ initialToken }: { initialToken?: string }) {
+export function QrScanner({
+  initialToken,
+  targetCourseId,
+}: {
+  initialToken?: string;
+  targetCourseId?: string;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -106,7 +112,11 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
   }, []);
 
   const submitToken = useCallback(
-    async (token: string, suppliedPosition?: GeolocationPosition) => {
+    async (
+      token: string,
+      suppliedPosition?: GeolocationPosition,
+      scannedCourseId?: string,
+    ) => {
       if (!token || handledTokenRef.current === token) return;
       handledTokenRef.current = token;
       stopCamera();
@@ -115,13 +125,19 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
       setMessage("Konum ve okul ağı kontrolleri yapılıyor.");
 
       try {
-        const inspectResponse = await fetch(`/api/attendance/scan?token=${encodeURIComponent(token)}`);
+        const expectedCourseId = targetCourseId ?? scannedCourseId;
+        const inspectUrl = new URL("/api/attendance/scan", window.location.origin);
+        inspectUrl.searchParams.set("token", token);
+        if (expectedCourseId) inspectUrl.searchParams.set("expectedCourseId", expectedCourseId);
+        const inspectResponse = await fetch(`${inspectUrl.pathname}${inspectUrl.search}`);
         const inspectBody = (await inspectResponse.json()) as {
-          data?: { courseName: string; courseCode: string };
+          data?: { courseId: string; courseName: string; courseCode: string };
           error?: { message?: string };
         };
         if (!inspectResponse.ok) throw new Error(inspectBody.error?.message ?? "QR kodu doğrulanamadı.");
         setCourseName(inspectBody.data ? `${inspectBody.data.courseCode} · ${inspectBody.data.courseName}` : undefined);
+        const resolvedCourseId = expectedCourseId ?? inspectBody.data?.courseId;
+        if (!resolvedCourseId) throw new Error("QR kodunda ders bilgisi bulunamadı.");
 
         let position = suppliedPosition;
         try {
@@ -139,6 +155,7 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             token,
+            targetCourseId: resolvedCourseId,
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             accuracyMeters: position.coords.accuracy,
@@ -170,7 +187,7 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
         setMessage(caught instanceof Error ? caught.message : "QR kodunu tekrar okutun.");
       }
     },
-    [stopCamera],
+    [stopCamera, targetCourseId],
   );
 
   const startCamera = useCallback(async () => {
@@ -239,9 +256,9 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
         const canvas = canvasRef.current;
         const v = videoRef.current;
         if (canvas && v && v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-          const token = await decodeQrFromVideo(v, canvas);
-          if (token) {
-            await submitToken(token);
+          const payload = await decodeAttendanceQrFromVideo(v, canvas);
+          if (payload) {
+            await submitToken(payload.token, undefined, payload.courseId);
             return;
           }
         }
@@ -281,13 +298,13 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
     try {
       const position = await currentPosition();
       positionRef.current = { position, capturedAt: Date.now() };
-      await submitToken(initialToken, position);
+      await submitToken(initialToken, position, targetCourseId);
     } catch (error) {
       setState("error");
       setTitle("Konum alınamadı");
       setMessage(geolocationErrorMessage(error));
     }
-  }, [initialToken, submitToken]);
+  }, [initialToken, submitToken, targetCourseId]);
 
   useEffect(() => {
     return () => {
@@ -385,7 +402,7 @@ export function QrScanner({ initialToken }: { initialToken?: string }) {
 
       <section
         className={cn(
-          "relative z-10 rounded-t-3xl px-6 pb-8 pt-6 text-center text-on-surface transition-all duration-500 ease-in-out",
+          "relative z-10 rounded-t-3xl px-6 pb-8 pt-6 text-center text-on-surface transition-[background-color,color,transform] duration-500 ease-in-out",
           state === "success" ? "bg-secondary-container" : state === "error" ? "bg-error-container" : "bg-surface-container-lowest",
         )}
         aria-live="polite"

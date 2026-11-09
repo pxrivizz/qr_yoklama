@@ -34,6 +34,14 @@ describe("campus location presets", () => {
     expect(findCampusLocationPreset(0, 0)).toBeUndefined();
   });
 
+  it("matches a preset after course coordinates are rounded to four decimals", () => {
+    const technologyFaculty = CAMPUS_LOCATION_PRESETS.find(
+      (location) => location.id === "technology-faculty",
+    );
+
+    expect(findCampusLocationPreset(37.166, 28.3731)).toEqual(technologyFaculty);
+  });
+
   it("builds an official Google Maps URL without requiring an API key", () => {
     expect(googleMapsLocationUrl(37.1614908, 28.3759782)).toBe(
       "https://www.google.com/maps/search/?api=1&query=37.1614908%2C28.3759782",

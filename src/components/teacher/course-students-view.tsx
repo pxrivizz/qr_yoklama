@@ -11,6 +11,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MaterialIcon } from "@/components/ui/icons";
+import { PageContainer } from "@/components/layout/page-container";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { StatusMessage } from "@/components/ui/status-message";
@@ -84,7 +85,6 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
     });
   }, [students, searchQuery, filterMandatory, filterMatched, filterRiskOnly]);
 
-  // Actions
   async function handleAddStudent(e: React.FormEvent) {
     e.preventDefault();
     if (!addFullName.trim() || !addSchoolNumber.trim()) {
@@ -255,8 +255,7 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
   }
 
   return (
-    <div className="animate-fade-in-up mx-auto max-w-container-max-width px-6 py-stack-lg sm:px-margin-page">
-      {/* Back link & Header */}
+    <PageContainer width="wide">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Link
           href={`/ogretmen/ders/${course.id}`}
@@ -272,7 +271,7 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
         </Link>
       </div>
 
-      <div className="mt-4 flex flex-col gap-5 border-b border-outline-variant/60 pb-7 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mt-4 flex flex-col gap-4 border-b border-outline-variant/60 pb-5 sm:flex-row sm:items-end sm:justify-between sm:pb-6">
         <div>
           <div className="flex items-center gap-2">
             <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary font-semibold">
@@ -337,16 +336,13 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
         </div>
       </div>
 
-      {/* Global Status Message */}
       {message && (
         <div className="mt-5">
           <StatusMessage variant={message.variant}>{message.text}</StatusMessage>
         </div>
       )}
-
-      {/* Summary KPI Cards */}
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <Card className="p-4 transition-all duration-200 hover:shadow-sm">
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
+        <Card className="p-4 transition-shadow duration-150 hover:shadow-sm">
           <div className="flex items-center justify-between">
             <span className="font-label-sm text-label-sm text-on-surface-variant">Toplam Kayıtlı</span>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant">
@@ -359,7 +355,7 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
           <p className="mt-0.5 text-xs text-on-surface-variant">öğrenci kayıtlı</p>
         </Card>
 
-        <Card className="p-4 transition-all duration-200 hover:shadow-sm">
+        <Card className="p-4 transition-shadow duration-150 hover:shadow-sm">
           <div className="flex items-center justify-between">
             <span className="font-label-sm text-label-sm text-primary font-medium">Devam Zorunlu</span>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -372,7 +368,7 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
           <p className="mt-0.5 text-xs text-on-surface-variant">zorunlu devam</p>
         </Card>
 
-        <Card className="p-4 transition-all duration-200 hover:shadow-sm">
+        <Card className="p-4 transition-shadow duration-150 hover:shadow-sm">
           <div className="flex items-center justify-between">
             <span className="font-label-sm text-label-sm text-on-surface-variant">Devam Muaf (Alttan)</span>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant">
@@ -385,7 +381,7 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
           <p className="mt-0.5 text-xs text-on-surface-variant">muafiyetli</p>
         </Card>
 
-        <Card className="p-4 transition-all duration-200 hover:shadow-sm">
+        <Card className="p-4 transition-shadow duration-150 hover:shadow-sm">
           <div className="flex items-center justify-between">
             <span className="font-label-sm text-label-sm text-secondary font-medium">Sistemle Eşleşen</span>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
@@ -400,7 +396,7 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
           </p>
         </Card>
 
-        <Card className="p-4 transition-all duration-200 hover:shadow-sm">
+        <Card className="p-4 transition-shadow duration-150 hover:shadow-sm">
           <div className="flex items-center justify-between">
             <span className="font-label-sm text-label-sm text-error font-medium">Devamsızlık Riski</span>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-error-container text-on-error-container">
@@ -415,7 +411,7 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
       </div>
 
       {/* Filter & Search Toolbar */}
-      <Card className="mt-6 p-4">
+      <Card className="mt-5 p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           {/* Search Bar */}
           <div className="relative min-w-0 flex-1 max-w-md">
@@ -427,7 +423,7 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Öğrenci adı veya numarası ile ara..."
-              className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest py-2 pl-10 pr-9 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-lg border border-outline bg-surface-container-lowest py-2 pl-10 pr-9 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
             {searchQuery && (
               <button
@@ -440,92 +436,82 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
             )}
           </div>
 
-          {/* Filter Pills */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Statü Filtresi */}
             <div className="inline-flex rounded-lg border border-outline-variant bg-surface-container-lowest p-0.5 text-xs">
               <button
                 type="button"
                 onClick={() => setFilterMandatory("ALL")}
-                className={`rounded-md px-2.5 py-1.5 font-medium transition-colors ${
-                  filterMandatory === "ALL"
-                    ? "bg-neutral-900 text-white"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
+                className={`rounded-md px-2.5 py-1.5 font-medium transition-colors ${filterMandatory === "ALL"
+                  ? "bg-neutral-900 text-white"
+                  : "text-on-surface-variant hover:text-on-surface"
+                  }`}
               >
                 Tümü
               </button>
               <button
                 type="button"
                 onClick={() => setFilterMandatory("MANDATORY")}
-                className={`rounded-md px-2.5 py-1.5 font-medium transition-colors ${
-                  filterMandatory === "MANDATORY"
-                    ? "bg-primary text-white"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
+                className={`rounded-md px-2.5 py-1.5 font-medium transition-colors ${filterMandatory === "MANDATORY"
+                  ? "bg-primary text-white"
+                  : "text-on-surface-variant hover:text-on-surface"
+                  }`}
               >
                 Zorunlu ({summary.mandatoryCount})
               </button>
               <button
                 type="button"
                 onClick={() => setFilterMandatory("OPTIONAL")}
-                className={`rounded-md px-2.5 py-1.5 font-medium transition-colors ${
-                  filterMandatory === "OPTIONAL"
-                    ? "bg-neutral-700 text-white"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
+                className={`rounded-md px-2.5 py-1.5 font-medium transition-colors ${filterMandatory === "OPTIONAL"
+                  ? "bg-neutral-700 text-white"
+                  : "text-on-surface-variant hover:text-on-surface"
+                  }`}
               >
                 Muaf ({summary.optionalCount})
               </button>
             </div>
 
-            {/* Eşleşme Filtresi */}
             <div className="inline-flex rounded-lg border border-outline-variant bg-surface-container-lowest p-0.5 text-xs">
               <button
                 type="button"
                 onClick={() => setFilterMatched("ALL")}
-                className={`rounded-md px-2.5 py-1.5 font-medium transition-colors ${
-                  filterMatched === "ALL"
-                    ? "bg-neutral-900 text-white"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
+                className={`rounded-md px-2.5 py-1.5 font-medium transition-colors ${filterMatched === "ALL"
+                  ? "bg-neutral-900 text-white"
+                  : "text-on-surface-variant hover:text-on-surface"
+                  }`}
               >
                 Hesap: Hepsi
               </button>
               <button
                 type="button"
                 onClick={() => setFilterMatched("MATCHED")}
-                className={`rounded-md px-2.5 py-1.5 font-medium transition-colors ${
-                  filterMatched === "MATCHED"
-                    ? "bg-secondary text-white"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
+                className={`rounded-md px-2.5 py-1.5 font-medium transition-colors ${filterMatched === "MATCHED"
+                  ? "bg-secondary text-white"
+                  : "text-on-surface-variant hover:text-on-surface"
+                  }`}
               >
                 Eşleşti ({summary.matchedCount})
               </button>
               <button
                 type="button"
                 onClick={() => setFilterMatched("UNMATCHED")}
-                className={`rounded-md px-2.5 py-1.5 font-medium transition-colors ${
-                  filterMatched === "UNMATCHED"
-                    ? "bg-amber-600 text-white"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
+                className={`rounded-md px-2.5 py-1.5 font-medium transition-colors ${filterMatched === "UNMATCHED"
+                  ? "bg-amber-600 text-white"
+                  : "text-on-surface-variant hover:text-on-surface"
+                  }`}
               >
                 Bekleniyor ({summary.unmatchedCount})
               </button>
             </div>
 
-            {/* Risk Toggle */}
             {course.mandatoryAlertLimit !== null && (
               <button
                 type="button"
                 onClick={() => setFilterRiskOnly(!filterRiskOnly)}
-                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                  filterRiskOnly
-                    ? "border-red-300 bg-red-50 text-red-700 font-semibold"
-                    : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:text-on-surface"
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${filterRiskOnly
+                  ? "border-red-300 bg-red-50 text-red-700 font-semibold"
+                  : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:text-on-surface"
+                  }`}
               >
                 <MaterialIcon name="warning" className="text-sm" />
                 Riskli ({summary.alertCount})
@@ -547,9 +533,8 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
         </div>
       </Card>
 
-      {/* Main Student List Table */}
       {students.length === 0 ? (
-        <Card className="mt-6">
+        <Card className="mt-5">
           <EmptyState
             title="Dersin henüz kayıtlı öğrencisi yok"
             description="Yoklama alabilmek ve devamsızlıkları takip edebilmek için Excel listesini yükleyin veya tekil öğrenci ekleyin."
@@ -560,7 +545,7 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
           />
         </Card>
       ) : filteredStudents.length === 0 ? (
-        <Card className="mt-6 p-8 text-center">
+        <Card className="mt-5 p-6 text-center sm:p-8">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
             <MaterialIcon name="search_off" className="text-2xl" />
           </div>
@@ -575,8 +560,8 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
           </div>
         </Card>
       ) : (
-        <Card className="mt-6 overflow-hidden">
-          <div className="flex items-center justify-between border-b border-outline-variant px-5 py-3.5 sm:px-6">
+        <Card className="mt-5 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-outline-variant px-4 py-3.5 sm:px-5">
             <div className="flex items-center gap-2">
               <span className="font-label-sm text-label-sm font-semibold text-on-surface">
                 {filteredStudents.length} öğrenci listeleniyor
@@ -594,8 +579,8 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
             )}
           </div>
 
-          <div className="overflow-x-auto">
-            <Table>
+          <div>
+            <Table ariaLabel="Derse kayıtlı öğrenciler">
               <TableHead>
                 <Th className="min-w-60">Öğrenci</Th>
                 <Th className="min-w-28">Okul No</Th>
@@ -664,11 +649,10 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
                         onClick={() => handleToggleMandatory(student)}
                         title="Zorunluluk durumunu değiştirmek için tıklayın"
                         disabled={pending}
-                        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 ${
-                          student.isMandatory
-                            ? "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
-                            : "bg-surface-container-high text-on-surface-variant border border-outline-variant/60 hover:bg-surface-container"
-                        }`}
+                        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-[background-color,border-color,color,transform] duration-150 motion-safe:hover:scale-[1.02] motion-safe:enabled:active:scale-[0.96] disabled:opacity-50 ${student.isMandatory
+                          ? "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
+                          : "bg-surface-container-high text-on-surface-variant border border-outline-variant/60 hover:bg-surface-container"
+                          }`}
                       >
                         <MaterialIcon
                           name={student.isMandatory ? "assignment_late" : "task_alt"}
@@ -770,7 +754,6 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
         </Card>
       )}
 
-      {/* MODAL 1: Tekil Öğrenci Ekle */}
       <Modal
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
@@ -789,7 +772,7 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
 
           <Input
             label="Öğrenci Numarası"
-            placeholder="Örn: 20230101"
+            placeholder="Örn: 241600000"
             value={addSchoolNumber}
             onChange={(e) => setAddSchoolNumber(e.target.value)}
             required
@@ -828,7 +811,6 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
         </form>
       </Modal>
 
-      {/* MODAL 2: Öğrenci Düzenle */}
       <Modal
         open={Boolean(studentToEdit)}
         onClose={() => setStudentToEdit(null)}
@@ -947,6 +929,6 @@ export function CourseStudentsView({ initialData }: CourseStudentsViewProps) {
           </Button>
         </div>
       </Modal>
-    </div>
+    </PageContainer>
   );
 }

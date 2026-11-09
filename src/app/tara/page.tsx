@@ -7,7 +7,10 @@ import { prisma } from "@/lib/db";
 export default async function ScanPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string | string[] }>;
+  searchParams: Promise<{
+    token?: string | string[];
+    courseId?: string | string[];
+  }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/giris");
@@ -26,6 +29,11 @@ export default async function ScanPage({
     redirect("/ogrenci?uyari=numara_gerekli");
   }
 
-  const { token } = await searchParams;
-  return <QrScanner initialToken={typeof token === "string" ? token : undefined} />;
+  const { token, courseId } = await searchParams;
+  return (
+    <QrScanner
+      initialToken={typeof token === "string" ? token : undefined}
+      targetCourseId={typeof courseId === "string" ? courseId : undefined}
+    />
+  );
 }

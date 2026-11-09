@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 
 import { auth, signOut } from "@/auth";
 import { BrandMark } from "@/components/brand/brand-mark";
@@ -6,6 +7,12 @@ import { LoginPortalForm } from "@/components/auth/login-portal-form";
 import { MaterialIcon } from "@/components/ui/icons";
 import { StatusMessage } from "@/components/ui/status-message";
 import { LegalLinks } from "@/components/legal/legal-links";
+
+export const metadata: Metadata = {
+  title: "Giriş",
+  description: "DersDevam öğrenci, öğretim elemanı ve yönetici giriş portalı.",
+  alternates: { canonical: "/giris" },
+};
 
 function getErrorMessage(error?: string | string[]): string | null {
   const errorKey = typeof error === "string" ? error : Array.isArray(error) ? error[0] : null;
@@ -33,7 +40,7 @@ export default async function SignInPage({
     : null;
 
   return (
-    <main className="flex min-h-dvh flex-col justify-between bg-neutral-50/60 p-4 sm:p-8">
+    <main className="flex min-h-dvh flex-col justify-between bg-neutral-50/60 p-4 sm:p-6 lg:p-8">
       <header className="mx-auto flex w-full max-w-md items-center justify-between">
         <Link
           href="/"
@@ -52,7 +59,7 @@ export default async function SignInPage({
       </header>
 
       <div className="mx-auto my-auto w-full max-w-md py-6">
-        <div className="rounded-2xl border border-neutral-200/90 bg-white p-6 sm:p-8 shadow-sm">
+        <div className="animate-fade-in-up rounded-2xl border border-neutral-200/90 bg-white p-4 shadow-sm sm:p-5">
           <div className="text-center mb-6">
             <BrandMark className="mx-auto size-12" priority />
             <h1 className="mt-4 text-2xl font-bold tracking-tight text-neutral-900">
@@ -78,7 +85,7 @@ export default async function SignInPage({
           )}
 
           {session?.user ? (
-            <div className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-5">
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-4">
               <div className="flex items-center gap-3">
                 <div className="grid size-9 shrink-0 place-items-center rounded-full bg-neutral-200 font-semibold text-xs text-neutral-700">
                   {(session.user.name ?? session.user.email ?? "U").charAt(0).toUpperCase()}

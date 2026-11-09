@@ -18,6 +18,7 @@ import { createAttendanceNotifications } from "@/lib/notifications/service";
 import type { ManualAttendanceInput } from "@/lib/attendance/manual-schema";
 import type { StartAttendanceSessionInput } from "@/lib/attendance/start-schema";
 import type { ResetAttendanceSessionInput } from "@/lib/attendance/reset-schema";
+import { buildAttendanceScanUrl } from "@/lib/attendance/scan-url";
 import {
   isPreparatorySlot,
   lessonCountForDate,
@@ -221,9 +222,9 @@ async function ensureCurrentQrToken(sessionId: string) {
   });
 }
 
-async function buildQrPayload(token: string) {
+async function buildQrPayload(token: string, courseId: string) {
   const { NEXT_PUBLIC_APP_URL } = getServerEnv();
-  const scanUrl = `${NEXT_PUBLIC_APP_URL}/tara?token=${encodeURIComponent(token)}`;
+  const scanUrl = buildAttendanceScanUrl(NEXT_PUBLIC_APP_URL, token, courseId);
   const dataUrl = await QRCode.toDataURL(scanUrl, {
     width: 1024,
     margin: 4,
@@ -256,9 +257,10 @@ export async function getActiveSessionState(
   if (!session) return null;
 
   const tokenRecord = await ensureCurrentQrToken(session.id);
-  const { scanUrl, dataUrl } = await buildQrPayload(tokenRecord.signature);
+  const { scanUrl, dataUrl } = await buildQrPayload(tokenRecord.signature, session.courseId);
 
   return {
+    courseId: session.courseId,
     sessionId: session.id,
     courseName: session.course.name,
     courseCode: session.course.code,

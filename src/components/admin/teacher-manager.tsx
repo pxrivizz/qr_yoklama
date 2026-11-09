@@ -132,7 +132,7 @@ export function TeacherManager({ initialTeachers }: { initialTeachers: Teacher[]
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(18rem,0.72fr)_minmax(0,1.28fr)] lg:items-start">
-      <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5 sm:p-6">
+      <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 sm:p-5">
         <h2 className="font-h3 text-h3 text-on-surface">Yeni öğretmen hesabı</h2>
         <p className="mt-1 text-sm text-on-surface-variant">
           Öğretmen ilk girişini bu e-posta ve geçici şifreyle yapar.
@@ -140,15 +140,15 @@ export function TeacherManager({ initialTeachers }: { initialTeachers: Teacher[]
         <form onSubmit={createTeacher} className="mt-5 space-y-4">
           <label className="block text-sm font-medium text-on-surface">
             Ad soyad
-            <input name="name" required maxLength={120} className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-white px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20" />
+            <input name="name" required maxLength={120} className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-white px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20" />
           </label>
           <label className="block text-sm font-medium text-on-surface">
             E-posta
-            <input name="email" type="email" required className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-white px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20" />
+            <input name="email" type="email" required className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-white px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20" />
           </label>
           <label className="block text-sm font-medium text-on-surface">
             Geçici şifre
-            <input name="temporaryPassword" type="password" required minLength={10} autoComplete="new-password" className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-white px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20" />
+            <input name="temporaryPassword" type="password" required minLength={10} autoComplete="new-password" className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-white px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20" />
             <span className="mt-1 block text-xs font-normal text-on-surface-variant">En az 10 karakter; büyük harf, küçük harf ve rakam içermeli.</span>
           </label>
           <Button type="submit" className="w-full gap-2" disabled={pendingAction === "create"}>
@@ -159,7 +159,7 @@ export function TeacherManager({ initialTeachers }: { initialTeachers: Teacher[]
       </section>
 
       <section className="min-w-0 rounded-xl border border-outline-variant bg-surface-container-lowest">
-        <div className="border-b border-outline-variant px-5 py-4 sm:px-6">
+        <div className="border-b border-outline-variant px-4 py-4 sm:px-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="font-h3 text-h3 text-on-surface">Öğretmen hesapları</h2>
@@ -181,7 +181,7 @@ export function TeacherManager({ initialTeachers }: { initialTeachers: Teacher[]
         ) : (
           <div className="divide-y divide-outline-variant">
             {teachers.map((teacher) => (
-              <article key={teacher.id} className="p-5 sm:p-6">
+              <article key={teacher.id} className="p-4 sm:p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -208,7 +208,7 @@ export function TeacherManager({ initialTeachers }: { initialTeachers: Teacher[]
                   <div className="mt-4 rounded-xl border border-outline-variant bg-surface-container-low p-4">
                     <label className="block text-sm font-medium text-on-surface">
                       Yeni geçici şifre
-                      <input value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} type="password" minLength={10} autoComplete="new-password" className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-white px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20" />
+                      <input value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} type="password" minLength={10} autoComplete="new-password" className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-white px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20" />
                     </label>
                     <div className="mt-3 flex justify-end gap-2">
                       <Button type="button" variant="secondary" size="sm" onClick={() => setResetTarget(undefined)}>İptal</Button>

@@ -51,17 +51,17 @@ export function PasswordChangeForm() {
 
       <label className="block text-sm font-medium text-on-surface">
         Mevcut şifre
-        <input name="currentPassword" type="password" required autoComplete="current-password" className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-white px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20" />
+        <input name="currentPassword" type="password" required autoComplete="current-password" className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-white px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20" />
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm font-medium text-on-surface">
           Yeni şifre
-          <input name="newPassword" type="password" required minLength={10} autoComplete="new-password" className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-white px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20" />
+          <input name="newPassword" type="password" required minLength={10} autoComplete="new-password" className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-white px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20" />
         </label>
         <label className="block text-sm font-medium text-on-surface">
           Yeni şifre tekrar
-          <input name="confirmPassword" type="password" required minLength={10} autoComplete="new-password" className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-white px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20" />
+          <input name="confirmPassword" type="password" required minLength={10} autoComplete="new-password" className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-white px-3 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20" />
         </label>
       </div>
 

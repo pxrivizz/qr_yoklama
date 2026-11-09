@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 
 import { BrandMark } from "@/components/brand/brand-mark";
 import { MaterialIcon } from "@/components/ui/icons";
@@ -13,13 +14,15 @@ type AdminShellProps = {
 };
 
 const navItems = [
-  { label: "Genel Bakış", href: "#genel-bakis", icon: "space_dashboard" },
-  { label: "Destek Kayıtları", href: "#destek", icon: "support_agent" },
+  { label: "Genel bakış", href: "#genel-bakis", icon: "space_dashboard" },
+  { label: "Destek kayıtları", href: "#destek", icon: "support_agent" },
+  { label: "Sistem logları", href: "/admin/loglar", icon: "receipt_long" },
   { label: "Öğretmenler", href: "#ogretmenler", icon: "group" },
   { label: "Yöneticiler", href: "#yoneticiler", icon: "admin_panel_settings" },
 ];
 
 export function AdminShell({ email, children, onSignOut }: AdminShellProps) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [activeHref, setActiveHref] = useState("#genel-bakis");
@@ -37,7 +40,10 @@ export function AdminShell({ email, children, onSignOut }: AdminShellProps) {
   }, []);
 
   useEffect(() => {
+    if (pathname !== "/admin") return;
+
     const sections = navItems
+      .filter((item) => item.href.startsWith("#"))
       .map((item) => document.querySelector(item.href))
       .filter((section): section is Element => Boolean(section));
     const observer = new IntersectionObserver(
@@ -51,7 +57,7 @@ export function AdminShell({ email, children, onSignOut }: AdminShellProps) {
     );
     sections.forEach((section) => observer.observe(section));
     return () => observer.disconnect();
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     if (!open) return;
@@ -87,7 +93,7 @@ export function AdminShell({ email, children, onSignOut }: AdminShellProps) {
   const sidebar = (
     <div className="flex h-full flex-col border-r border-white/[0.08] bg-[#09131f] text-white">
       <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-5">
-        <a href="#genel-bakis" onClick={close} className="flex items-center gap-3">
+        <a href="/admin#genel-bakis" onClick={close} className="flex items-center gap-3">
           <BrandMark variant="sidebar" className="size-10" priority />
           <div>
             <p className="text-base font-semibold tracking-tight">DersDevam</p>
@@ -100,26 +106,32 @@ export function AdminShell({ email, children, onSignOut }: AdminShellProps) {
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-5" aria-label="Yönetim menüsü">
-        {navItems.map((item) => (
-          <a
-            key={item.href}
-            href={item.href}
-            onClick={() => { setActiveHref(item.href); close(); }}
-            aria-current={activeHref === item.href ? "page" : undefined}
-            className={cn(
-              "group flex min-h-11 items-center gap-3 rounded-xl px-3.5 text-sm font-medium transition-colors",
-              activeHref === item.href
-                ? "bg-white/[0.1] text-white"
-                : "text-white/58 hover:bg-white/[0.06] hover:text-white",
-            )}
-          >
-            <MaterialIcon
-              name={item.icon}
-              className={cn("text-[20px]", activeHref === item.href ? "text-[#6ffbbe]" : "text-white/45 group-hover:text-white")}
-            />
-            {item.label}
-          </a>
-        ))}
+        {navItems.map((item) => {
+          const isActive = item.href.startsWith("/")
+            ? pathname === item.href
+            : pathname === "/admin" && activeHref === item.href;
+
+          return (
+            <a
+              key={item.href}
+              href={pathname === "/admin" || !item.href.startsWith("#") ? item.href : `/admin${item.href}`}
+              onClick={() => { setActiveHref(item.href); close(); }}
+              aria-current={isActive ? "page" : undefined}
+              className={cn(
+                "group flex min-h-11 items-center gap-3 rounded-xl px-3.5 text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-white/[0.1] text-white"
+                  : "text-white/58 hover:bg-white/[0.06] hover:text-white",
+              )}
+            >
+              <MaterialIcon
+                name={item.icon}
+                className={cn("text-[20px]", isActive ? "text-[#6ffbbe]" : "text-white/45 group-hover:text-white")}
+              />
+              {item.label}
+            </a>
+          );
+        })}
       </nav>
 
       <div className="border-t border-white/[0.08] p-3">
@@ -144,6 +156,9 @@ export function AdminShell({ email, children, onSignOut }: AdminShellProps) {
 
   return (
     <div className="min-h-dvh bg-[#f6f8fa]">
+      <a href="#ana-icerik" className="fixed left-4 top-3 z-[100] -translate-y-20 rounded-lg bg-[#075c50] px-4 py-2 text-sm font-semibold text-white shadow-lg transition-transform focus:translate-y-0">
+        Ana içeriğe geç
+      </a>
       {open && <button type="button" aria-label="Menüyü kapat" onClick={close} className="fixed inset-0 z-40 bg-black/55 lg:hidden" />}
       <aside
         ref={sidebarRef}
@@ -154,7 +169,7 @@ export function AdminShell({ email, children, onSignOut }: AdminShellProps) {
         {sidebar}
       </aside>
 
-      <header inert={open ? true : undefined} className="fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between border-b border-neutral-200/80 bg-white px-4 lg:left-[248px] lg:px-8">
+      <header inert={open ? true : undefined} className="fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between border-b border-neutral-200/80 bg-white px-4 sm:px-6 lg:left-[248px] lg:px-8">
         <div className="flex items-center gap-3">
           <button ref={menuButtonRef} type="button" onClick={() => setOpen(true)} className="grid size-10 place-items-center rounded-lg text-neutral-600 hover:bg-neutral-100 lg:hidden" aria-label="Menüyü aç">
             <MaterialIcon name="menu" className="text-xl" />
@@ -167,7 +182,7 @@ export function AdminShell({ email, children, onSignOut }: AdminShellProps) {
         </div>
       </header>
 
-      <main inert={open ? true : undefined} className="pt-16 lg:ml-[248px]">{children}</main>
+      <main id="ana-icerik" tabIndex={-1} inert={open ? true : undefined} className="pt-16 lg:ml-[248px]">{children}</main>
     </div>
   );
 }

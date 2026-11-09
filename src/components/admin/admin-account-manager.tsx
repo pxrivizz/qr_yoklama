@@ -97,7 +97,7 @@ export function AdminAccountManager({
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(20rem,0.82fr)_minmax(0,1.18fr)] xl:items-start">
       <section className="overflow-hidden rounded-xl border border-amber-200 bg-white" aria-labelledby="new-admin-heading">
-        <div className="border-b border-amber-200 bg-amber-50/70 px-5 py-4 sm:px-6">
+        <div className="border-b border-amber-200 bg-amber-50/70 px-4 py-4 sm:px-5">
           <div className="flex items-start gap-3">
             <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-amber-100 text-amber-800">
               <MaterialIcon name="shield_person" className="text-xl" />
@@ -109,7 +109,7 @@ export function AdminAccountManager({
           </div>
         </div>
 
-        <form onSubmit={createAccount} className="space-y-4 p-5 sm:p-6">
+        <form onSubmit={createAccount} className="space-y-4 p-4 sm:p-5">
           <label className="block text-sm font-medium text-neutral-900">
             Ad soyad
             <input name="name" required maxLength={120} autoComplete="name" className="mt-1.5 min-h-11 w-full rounded-lg border border-neutral-300 bg-white px-3 outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/15" />
@@ -139,7 +139,7 @@ export function AdminAccountManager({
       </section>
 
       <section className="min-w-0 overflow-hidden rounded-xl border border-neutral-200 bg-white" aria-labelledby="admin-list-heading">
-        <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-5 py-4 sm:px-6">
+        <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-4 py-4 sm:px-5">
           <div>
             <h3 id="admin-list-heading" className="text-base font-semibold text-neutral-950">Yönetici hesapları</h3>
             <p className="mt-1 text-xs text-neutral-500">Sisteme tam yönetim yetkisiyle erişebilen hesaplar</p>
@@ -152,7 +152,7 @@ export function AdminAccountManager({
             const isCurrent = admin.id === currentAdminId;
             return (
               <div key={admin.id}>
-                <article className="flex items-center gap-4 px-5 py-4 sm:px-6">
+                <article className="flex items-center gap-4 px-4 py-4 sm:px-5">
                   <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-neutral-100 text-neutral-600">
                     <MaterialIcon name="admin_panel_settings" className="text-xl" />
                   </span>
@@ -183,7 +183,7 @@ export function AdminAccountManager({
                   )}
                 </article>
                 {removingId === admin.id && (
-                  <div className="border-t border-red-100 bg-red-50/70 px-5 py-4 sm:px-6">
+                  <div className="border-t border-red-100 bg-red-50/70 px-4 py-4 sm:px-5">
                     <p className="text-xs leading-5 text-red-800">
                       Onaylamak için <strong>{admin.email}</strong> adresini yazın. Başka rolleri varsa yalnız admin rolü kaldırılır.
                     </p>
@@ -211,7 +211,7 @@ export function AdminAccountManager({
           })}
         </div>
 
-        <div className="border-t border-neutral-200 bg-neutral-50 px-5 py-4 text-xs leading-5 text-neutral-600 sm:px-6">
+        <div className="border-t border-neutral-200 bg-neutral-50 px-4 py-4 text-xs leading-5 text-neutral-600 sm:px-5">
           Yönetici hesabı oluşturma işlemleri güvenlik günlüğüne kaydedilir. Her yönetici kendi hesabıyla giriş yapmalıdır.
         </div>
       </section>

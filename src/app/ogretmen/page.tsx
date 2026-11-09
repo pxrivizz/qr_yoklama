@@ -1,13 +1,13 @@
 import Link from "next/link";
 
 import { TeacherLayout } from "@/components/layout/teacher-layout";
+import { PageContainer } from "@/components/layout/page-container";
 import { ButtonLink } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/ui/icons";
 import { CourseCreateModal } from "@/components/teacher/course-create-modal";
 import { AttendanceStartModal } from "@/components/teacher/attendance-start-modal";
 import { getTeacherDashboardData } from "@/lib/dashboard/service";
 import { requireTeacher } from "@/lib/auth/authorization";
-import { formatPreparatorySlot } from "@/lib/attendance/slot";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("tr-TR", {
@@ -18,19 +18,10 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
-function formatSessionDate(date: Date) {
-  return new Intl.DateTimeFormat("tr-TR", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
 export default async function TeacherDashboard() {
   const teacher = await requireTeacher();
 
-  const { stats, recentSessions, coursesSummary } =
+  const { stats, coursesSummary } =
     await getTeacherDashboardData(teacher.id);
 
   const today = formatDate(new Date());
@@ -39,40 +30,35 @@ export default async function TeacherDashboard() {
     <TeacherLayout
       userName={teacher.name ?? teacher.email}
       userImage={teacher.image}
-      pageTitle="Genel Bakış"
+      pageTitle="Genel bakış"
     >
-      <div className="mx-auto max-w-6xl px-6 py-10 sm:px-8">
-        <div className="flex flex-col gap-4 border-b border-neutral-200/80 pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <PageContainer>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <span className="text-xs font-medium text-neutral-500">{today}</span>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
-              Genel Bakış
+            <span className="text-xs font-medium text-on-surface-variant">{today}</span>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-on-surface sm:text-3xl">
+              Genel bakış
             </h1>
-            <p className="mt-1 text-sm text-neutral-600">
-              Derslerinizin katılım durumunu ve yoklama kayıtlarını buradan inceleyin.
+            <p className="mt-1 text-sm text-on-surface-variant">
+              Derslerinizi ve yoklamaları yönetin.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <ButtonLink
-              href="/ogretmen/loglar"
-              variant="secondary"
-              className="border border-neutral-200 bg-white text-neutral-800 hover:bg-neutral-50 shadow-none text-xs"
-            >
-              <MaterialIcon name="receipt_long" className="mr-1.5 text-base" />
-              QR Logları
-            </ButtonLink>
+          <div className="flex w-full items-center gap-2.5 sm:w-auto">
             <ButtonLink
               href="/ogretmen/dersler"
               variant="secondary"
-              className="border border-neutral-200 bg-white text-neutral-800 hover:bg-neutral-50 shadow-none text-xs"
+              className="min-h-11 flex-1 px-4 text-xs sm:flex-none"
             >
-              Tüm Dersler
+              Tüm dersler
             </ButtonLink>
             <CourseCreateModal />
           </div>
         </div>
 
+        {/*
+          Öğretmen özet widget'ları geçici olarak devre dışı bırakıldı.
+          Yeniden etkinleştirmek için bu JSX yorumunu kaldırın.
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-xl border border-neutral-200/80 bg-white p-5">
             <span className="text-xs font-medium text-neutral-500">Toplam Ders</span>
@@ -110,66 +96,80 @@ export default async function TeacherDashboard() {
             </span>
           </div>
         </div>
+        */}
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-12">
-          <div className="lg:col-span-7">
-            <div className="flex items-center justify-between border-b border-neutral-200/80 pb-3">
-              <h2 className="text-base font-semibold text-neutral-900">Dersler</h2>
+        <div className="mt-8 space-y-6">
+          {stats.alertStudentCount > 0 && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+              <div className="flex items-start gap-2.5">
+                <MaterialIcon name="warning" className="mt-0.5 text-lg text-amber-700" />
+                <div>
+                  <span className="text-xs font-semibold text-amber-900">Devamsızlık sınırı uyarısı</span>
+                  <p className="mt-0.5 text-xs text-amber-800">
+                    Toplam <strong>{stats.alertStudentCount} öğrenci</strong> belirlenen devamsızlık sınırına ulaştı.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <div className="flex items-center justify-between border-b border-outline-variant pb-3">
+              <h2 className="text-base font-semibold text-on-surface">Dersler</h2>
               <Link
                 href="/ogretmen/dersler"
-                className="text-xs font-medium text-neutral-600 hover:text-neutral-900"
+                className="rounded-sm text-xs font-medium text-on-surface-variant underline-offset-4 hover:text-on-surface hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                Tümünü Gör ({stats.totalCourses}) &rarr;
+                Tümünü gör ({stats.totalCourses}) &rarr;
               </Link>
             </div>
 
             {coursesSummary.length === 0 ? (
-              <div className="mt-6 rounded-xl border border-dashed border-neutral-300 bg-white p-8 text-center">
-                <p className="text-sm text-neutral-600">Henüz ders kaydı bulunmuyor.</p>
+              <div className="mt-6 rounded-xl border border-dashed border-outline bg-surface-container-lowest p-8 text-center">
+                <p className="text-sm text-on-surface-variant">Henüz ders kaydı bulunmuyor.</p>
                 <div className="mt-4">
                   <CourseCreateModal />
                 </div>
               </div>
             ) : (
-              <div className="mt-4 divide-y divide-neutral-200/60 rounded-xl border border-neutral-200/80 bg-white">
+              <div className="mt-4 divide-y divide-outline-variant overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
                 {coursesSummary.map((c) => (
                   <div
                     key={c.id}
-                    className={`p-5 transition-colors hover:bg-neutral-50/50 ${
-                      c.hasActiveSession ? "bg-neutral-50/60" : ""
-                    }`}
+                    className="p-4 transition-colors hover:bg-surface-container-low sm:p-5"
                   >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="rounded border border-neutral-200 bg-neutral-100 px-2 py-0.5 font-mono text-xs text-neutral-700">
+                          <span className="rounded border border-outline-variant bg-surface-container px-2 py-0.5 font-mono text-xs text-on-surface-variant">
                             {c.code}
                           </span>
                           {c.hasActiveSession && (
-                            <span className="font-mono text-xs font-medium text-neutral-600">
-                              Oturum Açık
+                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-secondary">
+                              <span className="size-1.5 rounded-full bg-secondary" aria-hidden="true" />
+                              Oturum açık
                             </span>
                           )}
                         </div>
-                        <h3 className="mt-1.5 truncate text-sm font-semibold text-neutral-900">
+                        <h3 className="mt-1.5 line-clamp-2 text-sm font-semibold text-on-surface sm:truncate">
                           {c.name}
                         </h3>
-                        <span className="text-xs text-neutral-500">
+                        <span className="mt-0.5 block text-xs text-on-surface-variant">
                           {c.hasActiveSession
                             ? "Yoklama oturumu devam ediyor"
                             : `${c.enrollmentCount} öğrenci kayıtlı`}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:flex sm:w-auto">
                         {c.hasActiveSession ? (
                           <ButtonLink
                             href={`/ogretmen/ders/${c.id}/yoklama`}
                             size="sm"
                             variant="primary"
-                            className="bg-neutral-900 text-white hover:bg-neutral-800 text-xs shadow-none"
+                            className="min-h-10 px-3.5 text-xs"
                           >
-                            Yoklamaya Dön
+                            Yoklamaya dön
                           </ButtonLink>
                         ) : (
                           <AttendanceStartModal
@@ -186,28 +186,29 @@ export default async function TeacherDashboard() {
                           href={`/ogretmen/ders/${c.id}/rapor`}
                           size="sm"
                           variant="secondary"
-                          className="border border-neutral-200 text-xs shadow-none"
+                          className="min-h-10 px-3.5 text-xs"
                         >
                           Rapor
                         </ButtonLink>
-                        <Link
+                        <ButtonLink
                           href={`/ogretmen/ders/${c.id}`}
-                          className="rounded-lg border border-neutral-200 p-2 text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
-                          title="Ders Ayarları"
+                          size="sm"
+                          variant="secondary"
+                          className="min-h-10 px-3.5 text-xs"
                         >
-                          <MaterialIcon name="tune" className="text-base" />
-                        </Link>
+                          Ayarlar
+                        </ButtonLink>
                       </div>
                     </div>
 
-                    <div className="mt-4">
-                      <div className="flex items-center justify-between text-xs text-neutral-500">
-                        <span>{c.completedSessions} / {c.plannedSessions} Oturum</span>
-                        <span className="font-medium text-neutral-700 tabular-nums">%{c.progress}</span>
+                    <div className="mt-3.5">
+                      <div className="flex items-center justify-between text-xs text-on-surface-variant">
+                        <span>{c.completedSessions} / {c.plannedSessions} oturum</span>
+                        <span className="font-medium text-on-surface tabular-nums">%{c.progress}</span>
                       </div>
-                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-container">
                         <div
-                          className="h-full rounded-full bg-neutral-800 transition-all duration-300"
+                          className="h-full rounded-full bg-primary transition-[width] duration-300"
                           style={{ width: `${c.progress}%` }}
                         />
                       </div>
@@ -217,77 +218,8 @@ export default async function TeacherDashboard() {
               </div>
             )}
           </div>
-
-          <div className="space-y-6 lg:col-span-5">
-            <div>
-              <div className="border-b border-neutral-200/80 pb-3">
-                <h2 className="text-base font-semibold text-neutral-900">Son Yoklamalar</h2>
-              </div>
-
-              {recentSessions.length === 0 ? (
-                <div className="mt-4 rounded-xl border border-neutral-200/80 bg-white p-6 text-center text-xs text-neutral-500">
-                  Henüz kaydedilmiş yoklama oturumu bulunmuyor.
-                </div>
-              ) : (
-                <div className="mt-4 divide-y divide-neutral-200/60 rounded-xl border border-neutral-200/80 bg-white">
-                  {recentSessions.map((sessionItem) => (
-                    <div
-                      key={sessionItem.id}
-                      className="flex items-center justify-between p-4 transition-colors hover:bg-neutral-50/50"
-                    >
-                      <div className="min-w-0 flex-1 pr-3">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-xs font-medium text-neutral-900">
-                            {sessionItem.courseCode}
-                          </span>
-                          <span className="text-neutral-300">·</span>
-                          <span className="text-xs text-neutral-500">
-                            {sessionItem.slotType === "CALENDAR_PERIOD" && sessionItem.sessionDate && sessionItem.lessonPeriod
-                              ? formatPreparatorySlot(sessionItem.sessionDate, sessionItem.lessonPeriod)
-                              : `H${sessionItem.weekNumber} / O${sessionItem.sessionIndexInWeek}`}
-                          </span>
-                        </div>
-                        <p className="mt-0.5 truncate text-xs text-neutral-700">
-                          {sessionItem.courseName}
-                        </p>
-                        <span className="text-[11px] text-neutral-400">
-                          {formatSessionDate(sessionItem.startedAt)}
-                        </span>
-                      </div>
-
-                      <div className="text-right shrink-0">
-                        <span className="block text-xs font-semibold tabular-nums text-neutral-900">
-                          {sessionItem.presentCount} / {sessionItem.totalEnrollments}
-                        </span>
-                        <Link
-                          href={`/ogretmen/ders/${sessionItem.courseId}/rapor`}
-                          className="mt-0.5 text-xs text-neutral-500 hover:text-neutral-900 hover:underline"
-                        >
-                          Rapor
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {stats.alertStudentCount > 0 && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4">
-                <div className="flex items-start gap-2.5">
-                  <MaterialIcon name="warning" className="text-amber-700 text-lg mt-0.5" />
-                  <div>
-                    <span className="text-xs font-semibold text-amber-900">Devamsızlık Sınırı Uyarısı</span>
-                    <p className="mt-0.5 text-xs text-amber-800">
-                      Toplam <strong>{stats.alertStudentCount} öğrenci</strong> belirlenen devamsızlık sınırına ulaştı.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
-      </div>
+      </PageContainer>
     </TeacherLayout>
   );
 }

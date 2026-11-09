@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 import { TeacherLayout } from "@/components/layout/teacher-layout";
+import { PageContainer } from "@/components/layout/page-container";
 import { Card } from "@/components/ui/card";
 import { EnrollmentImport } from "@/components/teacher/enrollment-import";
 import { AttendanceStartModal } from "@/components/teacher/attendance-start-modal";
@@ -33,17 +34,17 @@ export default async function CourseSettingsPage({ params }: PageProps) {
       userName={teacher.name ?? teacher.email}
       pageTitle={course.name}
     >
-      <div className="animate-fade-in-up mx-auto max-w-5xl px-6 py-stack-lg sm:px-margin-page">
+      <PageContainer>
         <Link href="/ogretmen/dersler" className="inline-flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant transition-colors duration-200 hover:text-on-surface">
           <MaterialIcon name="arrow_back" /> Derslerim
         </Link>
-        <div className="mt-5 flex flex-col gap-5 border-b border-outline-variant/60 pb-7 sm:flex-row sm:items-end sm:justify-between">
-          <div>
+        <div className="mt-4 flex flex-col gap-4 border-b border-outline-variant/60 pb-5 sm:flex-row sm:items-end sm:justify-between sm:pb-6">
+          <div className="min-w-0 flex-1">
             <p className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">{course.code}</p>
-            <h1 className="mt-1 font-h1 text-h1 text-on-surface">{course.name}</h1>
+            <h1 className="mt-1 max-w-2xl text-balance font-h1 text-h1 text-on-surface">{course.name}</h1>
             <p className="mt-2 font-body-md text-body-md text-on-surface-variant">Ders ayarları ve öğrenci listesi</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex max-w-xl flex-wrap gap-2 sm:justify-end">
             <ButtonLink href={`/ogretmen/ders/${course.id}/rapor`} variant="secondary">
               Yoklama raporu
             </ButtonLink>
@@ -75,23 +76,23 @@ export default async function CourseSettingsPage({ params }: PageProps) {
           </div>
         </div>
 
-        <div className="mt-7 grid gap-6">
+        <div className="mt-5 grid gap-5">
           {canManageCourse && (
-            <Card className="p-5 sm:p-6">
+            <Card className="p-4 sm:p-5">
               <h2 className="font-h3 text-h3 text-on-surface">Ders ayarları</h2>
               <p className="mt-1 font-body-md text-body-md text-on-surface-variant">Konum, ağ kuralları ve oturum planlaması.</p>
-              <div className="mt-6">
+              <div className="mt-5">
                 <CourseForm course={course} />
               </div>
             </Card>
           )}
 
-          <Card className="p-5 sm:p-6">
+          <Card className="p-4 sm:p-5">
             <h2 className="font-h3 text-h3 text-on-surface">Ders ekibi</h2>
             <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
               Bu derse öğretim elemanı veya asistan ekleyin.
             </p>
-            <div className="mt-6">
+            <div className="mt-5">
               <CourseMembersManager
                 courseId={course.id}
                 currentUserId={teacher.id}
@@ -101,18 +102,18 @@ export default async function CourseSettingsPage({ params }: PageProps) {
           </Card>
 
           {canManageAttendance && (
-            <Card className="p-5 sm:p-6">
+            <Card className="p-4 sm:p-5">
               <h2 className="font-h3 text-h3 text-on-surface">Öğrenci listesi</h2>
               <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
                 Excel dosyasından öğrenci kayıtlarını içe aktarın. Mevcut kayıtlar güncellenir.
               </p>
-              <div className="mt-6">
+              <div className="mt-5">
                 <EnrollmentImport courseId={course.id} />
               </div>
             </Card>
           )}
         </div>
-      </div>
+      </PageContainer>
     </TeacherLayout>
   );
 }

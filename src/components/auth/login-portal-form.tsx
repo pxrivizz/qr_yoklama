@@ -36,13 +36,16 @@ export function LoginPortalForm() {
 
   return (
     <div className="space-y-6">
-      {/* ── 3-Way Role Selector Tabs ── */}
-      <div className="grid grid-cols-3 p-1 rounded-xl bg-neutral-100 border border-neutral-200">
+      {/* ── 3-Way Role Selector ── */}
+      <fieldset>
+        <legend className="sr-only">Giriş türünü seçin</legend>
+        <div className="grid grid-cols-3 rounded-xl border border-neutral-200 bg-neutral-100 p-1">
         <button
           type="button"
           onClick={() => handleRoleChange("student")}
+          aria-pressed={selectedRole === "student"}
           className={cn(
-            "flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-semibold rounded-lg transition-all",
+            "flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition-[background-color,color,box-shadow] duration-150",
             selectedRole === "student"
               ? "bg-white text-neutral-900 shadow-sm"
               : "text-neutral-500 hover:text-neutral-900"
@@ -55,8 +58,9 @@ export function LoginPortalForm() {
         <button
           type="button"
           onClick={() => handleRoleChange("academic")}
+          aria-pressed={selectedRole === "academic"}
           className={cn(
-            "flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-semibold rounded-lg transition-all",
+            "flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition-[background-color,color,box-shadow] duration-150",
             selectedRole === "academic"
               ? "bg-white text-neutral-900 shadow-sm"
               : "text-neutral-500 hover:text-neutral-900"
@@ -69,31 +73,35 @@ export function LoginPortalForm() {
         <button
           type="button"
           onClick={() => handleRoleChange("admin")}
+          aria-pressed={selectedRole === "admin"}
           className={cn(
-            "flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-semibold rounded-lg transition-all",
+            "flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition-[background-color,color,box-shadow] duration-150",
             selectedRole === "admin"
               ? "bg-white text-neutral-900 shadow-sm"
               : "text-neutral-500 hover:text-neutral-900"
           )}
         >
           <MaterialIcon name="admin_panel_settings" className="text-base text-amber-600" />
-          <span>Admin</span>
+          <span>Yönetici</span>
         </button>
-      </div>
+        </div>
+      </fieldset>
 
       {/* ── Error Banner ── */}
-      {errorMessage && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 flex items-start gap-2">
-          <MaterialIcon name="error" className="text-base text-red-500 shrink-0 mt-0.5" />
-          <span>{errorMessage}</span>
-        </div>
-      )}
+      <div role="alert" aria-atomic="true">
+        {errorMessage && (
+          <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+            <MaterialIcon name="error" className="mt-0.5 shrink-0 text-base text-red-500" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+      </div>
 
       {/* ── 1. ÖĞRENCİ GİRİŞİ (Sadece Google, Kurumsal Zorunluluk Yok) ── */}
       {selectedRole === "student" && (
         <div className="space-y-4 animate-in fade-in duration-200">
           <div className="text-center">
-            <h2 className="text-base font-bold text-neutral-900">Öğrenci Girişi</h2>
+            <h2 className="text-base font-bold text-neutral-900">Öğrenci girişi</h2>
             <p className="mt-1 text-xs text-neutral-500">
               Google hesabınızla giriş yapın
             </p>
@@ -109,7 +117,7 @@ export function LoginPortalForm() {
       {selectedRole === "academic" && (
         <div className="space-y-4 animate-in fade-in duration-200">
           <div className="text-center">
-            <h2 className="text-base font-bold text-neutral-900">Akademik Personel Girişi</h2>
+            <h2 className="text-base font-bold text-neutral-900">Akademik personel girişi</h2>
             <p className="mt-1 text-xs text-neutral-500">
               E-posta ve şifrenizle giriş yapın
             </p>
@@ -117,25 +125,27 @@ export function LoginPortalForm() {
 
           <form onSubmit={handleCredentialsSubmit} className="space-y-3.5 pt-1">
             <div>
-              <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                E-Posta
+              <label htmlFor="academic-email" className="mb-1 block text-xs font-semibold text-neutral-700">
+                E-posta
               </label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
                   <MaterialIcon name="mail" className="text-base" />
                 </span>
                 <input
+                  id="academic-email"
                   type="email"
                   name="email"
+                  autoComplete="username"
                   required
                   placeholder="ad.soyad@mu.edu.tr"
-                  className="w-full rounded-lg border border-neutral-300 pl-9 pr-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none"
+                  className="w-full rounded-lg border border-neutral-400 py-2 pl-9 pr-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900 sm:text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-neutral-700 mb-1">
+              <label htmlFor="academic-password" className="mb-1 block text-xs font-semibold text-neutral-700">
                 Şifre
               </label>
               <div className="relative">
@@ -143,11 +153,13 @@ export function LoginPortalForm() {
                   <MaterialIcon name="lock" className="text-base" />
                 </span>
                 <input
+                  id="academic-password"
                   type="password"
                   name="password"
+                  autoComplete="current-password"
                   required
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-neutral-300 pl-9 pr-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none"
+                  className="w-full rounded-lg border border-neutral-400 py-2 pl-9 pr-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900 sm:text-sm"
                 />
               </div>
             </div>
@@ -158,7 +170,7 @@ export function LoginPortalForm() {
               className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 shadow-sm"
             >
               {isPending && <MaterialIcon name="progress_activity" className="animate-spin text-base" />}
-              {isPending ? "Giriş yapılıyor…" : "Giriş Yap"}
+              {isPending ? "Giriş yapılıyor…" : "Giriş yap"}
             </button>
           </form>
         </div>
@@ -168,7 +180,7 @@ export function LoginPortalForm() {
       {selectedRole === "admin" && (
         <div className="space-y-4 animate-in fade-in duration-200">
           <div className="text-center">
-            <h2 className="text-base font-bold text-neutral-900">Admin Girişi</h2>
+            <h2 className="text-base font-bold text-neutral-900">Yönetici girişi</h2>
             <p className="mt-1 text-xs text-neutral-500">
               Yönetici e-posta ve şifrenizle giriş yapın
             </p>
@@ -176,25 +188,27 @@ export function LoginPortalForm() {
 
           <form onSubmit={handleCredentialsSubmit} className="space-y-3.5 pt-1">
             <div>
-              <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                E-Posta
+              <label htmlFor="admin-email" className="mb-1 block text-xs font-semibold text-neutral-700">
+                E-posta
               </label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
                   <MaterialIcon name="admin_panel_settings" className="text-base text-amber-600" />
                 </span>
                 <input
+                  id="admin-email"
                   type="email"
                   name="email"
+                  autoComplete="username"
                   required
                   placeholder="admin@mu.edu.tr"
-                  className="w-full rounded-lg border border-neutral-300 pl-9 pr-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none"
+                  className="w-full rounded-lg border border-neutral-400 py-2 pl-9 pr-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900 sm:text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-neutral-700 mb-1">
+              <label htmlFor="admin-password" className="mb-1 block text-xs font-semibold text-neutral-700">
                 Şifre
               </label>
               <div className="relative">
@@ -202,11 +216,13 @@ export function LoginPortalForm() {
                   <MaterialIcon name="key" className="text-base text-amber-600" />
                 </span>
                 <input
+                  id="admin-password"
                   type="password"
                   name="password"
+                  autoComplete="current-password"
                   required
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-neutral-300 pl-9 pr-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none"
+                  className="w-full rounded-lg border border-neutral-400 py-2 pl-9 pr-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900 sm:text-sm"
                 />
               </div>
             </div>
@@ -217,7 +233,7 @@ export function LoginPortalForm() {
               className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 shadow-sm"
             >
               {isPending && <MaterialIcon name="progress_activity" className="animate-spin text-base" />}
-              {isPending ? "Giriş yapılıyor…" : "Giriş Yap"}
+              {isPending ? "Giriş yapılıyor…" : "Giriş yap"}
             </button>
           </form>
         </div>

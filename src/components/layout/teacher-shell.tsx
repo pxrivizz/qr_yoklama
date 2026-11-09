@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { SideNav } from "@/components/layout/side-nav";
 import { TopAppBar } from "@/components/layout/top-app-bar";
 import { ImpersonationBanner } from "@/components/admin/impersonation-banner";
@@ -26,28 +27,53 @@ export function TeacherShell({
   onSignOut,
   isImpersonating = false,
 }: TeacherShellProps) {
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
+  const previousPathRef = useRef(pathname);
   const openSidebar = useCallback(() => setSidebarOpen(true), []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
+  useEffect(() => {
+    if (previousPathRef.current === pathname) return;
+    previousPathRef.current = pathname;
+    mainRef.current?.focus({ preventScroll: true });
+  }, [pathname]);
+
   return (
     <div className="min-h-dvh bg-background">
+      <a
+        href="#ana-icerik"
+        className="fixed left-4 top-3 z-[100] -translate-y-20 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary shadow-lg transition-transform focus:translate-y-0"
+      >
+        Ana içeriğe geç
+      </a>
       <SideNav
-        userName={userName}
-        onSignOut={onSignOut}
         open={sidebarOpen}
         onClose={closeSidebar}
-        isImpersonating={isImpersonating}
       />
-      <TopAppBar
-        title={pageTitle}
-        showSearch={showSearch}
-        searchPlaceholder={searchPlaceholder}
-        userImage={userImage}
-        onMenuToggle={openSidebar}
-      />
-      {isImpersonating && <ImpersonationBanner />}
-      <main className={isImpersonating ? "pt-28 lg:ml-sidebar-width" : "pt-16 lg:ml-sidebar-width"}>{children}</main>
+      <div inert={sidebarOpen ? true : undefined}>
+        <TopAppBar
+          title={pageTitle}
+          showSearch={showSearch}
+          searchPlaceholder={searchPlaceholder}
+          userName={userName}
+          userImage={userImage}
+          userRole={isImpersonating ? "Yönetici · Öğretmen görünümü" : "Öğretim elemanı"}
+          showAccountSettings={!isImpersonating}
+          onSignOut={onSignOut}
+          onMenuToggle={openSidebar}
+        />
+        {isImpersonating && <ImpersonationBanner />}
+        <main
+          ref={mainRef}
+          id="ana-icerik"
+          tabIndex={-1}
+          className={isImpersonating ? "pt-28 lg:ml-sidebar-width" : "pt-16 lg:ml-sidebar-width"}
+        >
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

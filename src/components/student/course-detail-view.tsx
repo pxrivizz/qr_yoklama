@@ -84,8 +84,8 @@ export function CourseDetailView({ initialData }: CourseDetailViewProps) {
   }
 
   return (
-    <div className="animate-fade-in-up space-y-6 sm:space-y-8">
-      <section className="rounded-xl border border-outline-variant bg-surface-container-lowest px-5 py-5 shadow-[0_8px_24px_rgba(25,28,30,0.06)] sm:px-6 sm:py-6">
+    <div className="space-y-6 sm:space-y-8">
+      <section className="rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-4 shadow-[0_8px_24px_rgba(25,28,30,0.06)] sm:px-5 sm:py-5">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <Link
@@ -199,7 +199,7 @@ export function CourseDetailView({ initialData }: CourseDetailViewProps) {
           activeSession ? "border-emerald-200" : "border-outline-variant",
         )}
       >
-        <div className="border-b border-outline-variant px-5 py-4 sm:px-6">
+        <div className="border-b border-outline-variant px-4 py-4 sm:px-5">
           <h2 id="qr-attendance-heading" className="text-base font-semibold text-on-surface">
             QR ile yoklama
           </h2>
@@ -207,7 +207,7 @@ export function CourseDetailView({ initialData }: CourseDetailViewProps) {
 
         {activeSession ? (
           activeSession.alreadyAttended ? (
-            <div className="flex flex-col gap-4 bg-emerald-50/45 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="flex flex-col gap-4 bg-emerald-50/45 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-5">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
                   <MaterialIcon name="check_circle" className="text-xl" filled />
@@ -219,7 +219,7 @@ export function CourseDetailView({ initialData }: CourseDetailViewProps) {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-5 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="flex flex-col gap-5 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-5">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-sm font-medium text-emerald-800">
                   <MaterialIcon name="sensors" className="text-lg" />
@@ -241,7 +241,7 @@ export function CourseDetailView({ initialData }: CourseDetailViewProps) {
             </div>
           )
         ) : (
-          <div className="flex items-start gap-3 px-5 py-5 sm:px-6">
+          <div className="flex items-start gap-3 px-4 py-4 sm:px-5 sm:py-5">
             <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-surface-container text-on-surface-variant">
               <MaterialIcon name="qr_code_2" className="text-xl" />
             </div>
@@ -269,7 +269,7 @@ export function CourseDetailView({ initialData }: CourseDetailViewProps) {
         </div>
 
         <div className="hidden overflow-hidden rounded-xl border border-neutral-200/80 bg-white sm:block">
-          <Table>
+          <Table ariaLabel="Ders yoklama geçmişi">
             <TableHead>
               <Th>Hafta / Oturum</Th>
               <Th>Tarih & Saat</Th>

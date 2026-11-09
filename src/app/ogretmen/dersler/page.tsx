@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { TeacherLayout } from "@/components/layout/teacher-layout";
+import { PageContainer } from "@/components/layout/page-container";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MaterialIcon } from "@/components/ui/icons";
@@ -39,7 +40,7 @@ export default async function TeacherCoursesPage({ searchParams }: PageProps) {
       showSearch={true}
       searchPlaceholder="Ders kodu veya adı ara…"
     >
-      <div className="animate-fade-in-up mx-auto max-w-container-max-width px-6 py-stack-lg sm:px-margin-page">
+      <PageContainer width="wide">
         <div className="mb-4">
           <Link
             href="/ogretmen"
@@ -79,7 +80,7 @@ export default async function TeacherCoursesPage({ searchParams }: PageProps) {
           </Card>
         ) : (
           <Card className="overflow-hidden">
-            <div className="border-b border-outline-variant/60 bg-surface-container-low/50 px-6 py-3 font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">
+            <div className="border-b border-outline-variant/60 bg-surface-container-low/50 px-4 py-3 font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant sm:px-5">
               Tüm Dersler ({courses.length})
             </div>
             <div className="stagger-children divide-y divide-outline-variant/60">
@@ -87,7 +88,7 @@ export default async function TeacherCoursesPage({ searchParams }: PageProps) {
             </div>
           </Card>
         )}
-      </div>
+      </PageContainer>
     </TeacherLayout>
   );
 }

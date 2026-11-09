@@ -174,4 +174,27 @@ describe("recordAttendanceScan device reuse protection", () => {
       }),
     );
   });
+
+  it("QR tokenının dersi ile hedef ders farklıysa kaydı reddeder", async () => {
+    const deviceId = createAttendanceDeviceId();
+    const context = { ipAddress: "10.0.0.12", userAgent: "Test Browser" };
+
+    await expect(
+      recordAttendanceScan(
+        "student-a",
+        { ...input, targetCourseId: "course-2" },
+        context,
+        deviceId,
+      ),
+    ).rejects.toMatchObject({ status: 400, code: "COURSE_MISMATCH" });
+
+    expect(mocks.transaction).not.toHaveBeenCalled();
+    expect(mocks.createQrScanLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        courseId: "course-1",
+        sessionId: "session-1",
+        result: "INVALID_QR",
+      }),
+    );
+  });
 });

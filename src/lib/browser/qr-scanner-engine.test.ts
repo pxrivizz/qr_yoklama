@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { extractTokenFromQrRaw } from "./qr-scanner-engine";
+import { extractAttendanceQrFromRaw, extractTokenFromQrRaw } from "./qr-scanner-engine";
+
+describe("extractAttendanceQrFromRaw", () => {
+  it("QR bağlantısından token ve ders kimliğini birlikte çıkarır", () => {
+    expect(
+      extractAttendanceQrFromRaw(
+        "https://dersdevam.com.tr/tara?token=header.payload.signature&courseId=course-123",
+      ),
+    ).toEqual({ token: "header.payload.signature", courseId: "course-123" });
+  });
+
+  it("ders kimliği olmayan ham tokenı geriye uyumlu olarak ayrıştırır", () => {
+    expect(extractAttendanceQrFromRaw("header.payload.signature")).toEqual({
+      token: "header.payload.signature",
+    });
+  });
+});
 
 describe("extractTokenFromQrRaw", () => {
   it("extracts token query parameter from full URL", () => {

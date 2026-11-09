@@ -39,7 +39,7 @@ export function CourseListItem({ course }: CourseListItemProps) {
   const progress = planned > 0 ? Math.min(100, Math.round((completed / planned) * 100)) : 0;
 
   return (
-    <article className="card-hover group flex flex-col gap-5 border-b border-outline-variant px-5 py-5 transition-all duration-200 last:border-b-0 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+    <article className="card-hover group flex flex-col gap-4 border-b border-outline-variant px-4 py-4 transition-[background-color,box-shadow,transform] duration-150 last:border-b-0 sm:px-5 sm:py-5 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="code">{course.code}</Badge>
@@ -84,19 +84,19 @@ export function CourseListItem({ course }: CourseListItemProps) {
         )}
         <Link
           href={`/ogretmen/ders/${course.id}/manuel`}
-          className="rounded-lg px-3 py-2 font-label-sm text-label-sm text-on-surface-variant transition-all duration-200 hover:bg-surface-container hover:text-on-surface hover:shadow-sm"
+          className="rounded-lg px-3 py-2 font-label-sm text-label-sm text-on-surface-variant transition-[background-color,color,box-shadow] duration-150 hover:bg-surface-container hover:text-on-surface hover:shadow-sm"
         >
           Manuel yoklama
         </Link>
         <Link
           href={`/ogretmen/ders/${course.id}/rapor`}
-          className="rounded-lg px-3 py-2 font-label-sm text-label-sm text-on-surface-variant transition-all duration-200 hover:bg-surface-container hover:text-on-surface hover:shadow-sm"
+          className="rounded-lg px-3 py-2 font-label-sm text-label-sm text-on-surface-variant transition-[background-color,color,box-shadow] duration-150 hover:bg-surface-container hover:text-on-surface hover:shadow-sm"
         >
           Rapor
         </Link>
         <Link
           href={`/ogretmen/ders/${course.id}`}
-          className="rounded-lg px-3 py-2 font-label-sm text-label-sm text-on-surface-variant transition-all duration-200 hover:bg-surface-container hover:text-on-surface hover:shadow-sm"
+          className="rounded-lg px-3 py-2 font-label-sm text-label-sm text-on-surface-variant transition-[background-color,color,box-shadow] duration-150 hover:bg-surface-container hover:text-on-surface hover:shadow-sm"
         >
           Ayarlar
         </Link>

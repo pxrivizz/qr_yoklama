@@ -224,7 +224,7 @@ export function AttendanceStartModal({
                     setLessonPeriod(1);
                     clearSelectionState();
                   }}
-                  className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-md text-body-md text-on-surface outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
+                  className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-surface-container-lowest px-3 font-body-md text-body-md text-on-surface outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
                 />
               </label>
               <label className="block font-label-sm text-label-sm text-on-surface">
@@ -236,7 +236,7 @@ export function AttendanceStartModal({
                     setLessonPeriod(Number(event.target.value));
                     clearSelectionState();
                   }}
-                  className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-md text-body-md text-on-surface outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
+                  className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-surface-container-lowest px-3 font-body-md text-body-md text-on-surface outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
                 >
                   {selectedDayLessonCount === 0 ? (
                     <option value={1}>Seçilen gün ders yok</option>
@@ -255,7 +255,7 @@ export function AttendanceStartModal({
                     setWeekNumber(Number(event.target.value));
                     clearSelectionState();
                   }}
-                  className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-md text-body-md text-on-surface outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
+                  className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-surface-container-lowest px-3 font-body-md text-body-md text-on-surface outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
                 >
                   {Array.from({ length: totalWeeks }, (_, index) => index + 1)
                     .map((week) => <option key={week} value={week}>Hafta {week}</option>)}
@@ -269,7 +269,7 @@ export function AttendanceStartModal({
                     setSessionIndexInWeek(Number(event.target.value));
                     clearSelectionState();
                   }}
-                  className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-md text-body-md text-on-surface outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
+                  className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-surface-container-lowest px-3 font-body-md text-body-md text-on-surface outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
                 >
                   {Array.from({ length: weeklySessionCount }, (_, index) => index + 1)
                     .map((index) => <option key={index} value={index}>Oturum {index}</option>)}

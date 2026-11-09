@@ -18,8 +18,8 @@ export function Input({ label, hint, error, className, id, "aria-describedby": a
       <input
         id={inputId}
         className={cn(
-          "mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 font-body-md text-body-md text-on-surface",
-          "outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/25 focus:shadow-[0_0_0_4px_rgba(2,36,72,0.08)]",
+          "mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-surface-container-lowest px-3 py-2 font-body-md text-base text-on-surface placeholder:text-on-surface-variant sm:text-body-md",
+          "outline-none transition-[border-color,box-shadow] duration-150 focus:border-primary focus:ring-2 focus:ring-primary/25 focus:shadow-[0_0_0_4px_rgba(2,36,72,0.08)]",
           error && "border-error focus:border-error focus:ring-error/20",
           className,
         )}
@@ -51,8 +51,8 @@ export function Textarea({ label, hint, error, className, id, "aria-describedby"
       <textarea
         id={inputId}
         className={cn(
-          "mt-1.5 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 font-body-md text-body-md text-on-surface",
-          "outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/25 focus:shadow-[0_0_0_4px_rgba(2,36,72,0.08)]",
+          "mt-1.5 w-full rounded-lg border border-outline bg-surface-container-lowest px-3 py-2 font-body-md text-base text-on-surface placeholder:text-on-surface-variant sm:text-body-md",
+          "outline-none transition-[border-color,box-shadow] duration-150 focus:border-primary focus:ring-2 focus:ring-primary/25 focus:shadow-[0_0_0_4px_rgba(2,36,72,0.08)]",
           error && "border-error focus:border-error focus:ring-error/20",
           className,
         )}

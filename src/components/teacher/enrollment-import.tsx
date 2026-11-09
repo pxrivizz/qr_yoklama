@@ -102,7 +102,7 @@ export function EnrollmentImport({ courseId }: { courseId: string }) {
         <input
           type="file"
           accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          className="mt-2 block w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-2 font-body-md text-body-md file:mr-3 file:rounded-lg file:border-0 file:bg-primary/5 file:px-3 file:py-2 file:font-label-sm file:text-label-sm file:text-on-surface"
+          className="mt-2 block w-full rounded-lg border border-outline bg-surface-container-lowest p-2 font-body-md text-body-md file:mr-3 file:rounded-lg file:border-0 file:bg-primary/5 file:px-3 file:py-2 file:font-label-sm file:text-label-sm file:text-on-surface"
           onChange={(event) => {
             setFile(event.target.files?.[0]);
             setPreview(undefined);
@@ -174,7 +174,7 @@ export function EnrollmentImport({ courseId }: { courseId: string }) {
             <span>Güncelleme: <strong className="text-on-surface">{preview.summary.update}</strong></span>
           </div>
           <div className="max-h-80 overflow-auto">
-            <Table>
+            <Table ariaLabel="İçe aktarılan öğrenci kayıtları">
               <TableHead>
                 <Th>Satır</Th>
                 <Th>Öğrenci</Th>

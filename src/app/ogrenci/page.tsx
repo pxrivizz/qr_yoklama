@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { auth, signOut } from "@/auth";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { PageContainer } from "@/components/layout/page-container";
 import { StudentProfileSection } from "@/components/student/student-profile-section";
 import { StudentNotifications } from "@/components/student/student-notifications";
 import { ActiveAttendanceBanner } from "@/components/student/active-attendance-banner";
@@ -41,7 +42,7 @@ export default async function StudentPage({ searchParams }: StudentPageProps) {
   return (
     <main className="min-h-dvh bg-background">
       <header className="border-b border-outline-variant bg-surface-container-lowest/80 backdrop-blur-lg sticky top-0 z-20">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
           <Link href="/ogrenci" className="flex min-w-0 shrink items-center gap-2 font-h3 text-h3 text-primary">
             <BrandMark className="size-8" priority />
             <span className="truncate text-sm font-bold sm:text-base">DersDevam</span>
@@ -88,7 +89,7 @@ export default async function StudentPage({ searchParams }: StudentPageProps) {
       </header>
 
 
-      <div className="mx-auto grid max-w-3xl gap-6 px-4 py-8 sm:px-6 sm:py-12 animate-fade-in-up stagger-children">
+      <PageContainer width="compact" className="grid gap-6">
         {uyari === "fotograf_gerekli" && (
           <div className="flex items-start gap-3 rounded-lg border border-error-container bg-error-container/30 p-4 text-on-error-container">
             <MaterialIcon name="error" className="mt-0.5 text-xl text-error" />
@@ -256,7 +257,7 @@ export default async function StudentPage({ searchParams }: StudentPageProps) {
             )}
           </div>
         </section>
-      </div>
+      </PageContainer>
     </main>
   );
 }

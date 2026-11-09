@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { MaterialIcon } from "@/components/ui/icons";
 import { LiveIndicator } from "@/components/ui/live-indicator";
 import { StatusMessage } from "@/components/ui/status-message";
+import { activeSessionForCourse } from "@/lib/attendance/active-session-state";
 import { formatPreparatorySlot } from "@/lib/attendance/slot";
 
 type SessionState = {
+  courseId: string;
   sessionId: string;
   courseName: string;
   courseCode: string;
@@ -33,12 +35,12 @@ type QrDisplayProps = {
 
 export function QrDisplay({ courseId }: QrDisplayProps) {
   const router = useRouter();
-  const initializedRef = useRef(false);
-  const [state, setState] = useState<SessionState>();
+  const [sessionState, setState] = useState<SessionState>();
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(true);
   const [closing, setClosing] = useState(false);
   const [isProjectionMode, setIsProjectionMode] = useState(false);
+  const state = activeSessionForCourse(courseId, sessionState);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -69,9 +71,9 @@ export function QrDisplay({ courseId }: QrDisplayProps) {
   }, [courseId]);
 
   const load = useCallback(async () => {
-    setError(undefined);
     try {
       const data = await fetchState();
+      setError(undefined);
       setState(data ?? undefined);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Yoklama oturumu yüklenemedi.");
@@ -81,17 +83,33 @@ export function QrDisplay({ courseId }: QrDisplayProps) {
   }, [fetchState]);
 
   useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
-    void load();
-  }, [load]);
+    let cancelled = false;
+
+    void fetchState()
+      .then((data) => {
+        if (cancelled) return;
+        setError(undefined);
+        setState(data ?? undefined);
+      })
+      .catch((caught: unknown) => {
+        if (cancelled) return;
+        setError(caught instanceof Error ? caught.message : "Yoklama oturumu yüklenemedi.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchState]);
 
   const sessionId = state?.sessionId;
 
   useEffect(() => {
     if (!sessionId) return;
     const id = window.setInterval(() => {
-      void fetchState().then((data) => data && setState(data)).catch(() => undefined);
+      void fetchState().then((data) => setState(data ?? undefined)).catch(() => undefined);
     }, 5000);
     return () => window.clearInterval(id);
   }, [fetchState, sessionId]);

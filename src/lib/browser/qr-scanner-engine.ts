@@ -46,21 +46,33 @@ function getZxingReader() {
   return { reader: zxingReader, hints: zxingHints! };
 }
 
-export function extractTokenFromQrRaw(rawValue: string): string {
+export type AttendanceQrPayload = {
+  token: string;
+  courseId?: string;
+};
+
+export function extractAttendanceQrFromRaw(rawValue: string): AttendanceQrPayload | null {
   const value = rawValue.trim();
-  if (!value) return "";
+  if (!value) return null;
   try {
     const url = new URL(value, typeof window !== "undefined" ? window.location.origin : "http://localhost");
     const paramToken = url.searchParams.get("token");
-    if (paramToken) return paramToken;
+    if (paramToken) {
+      const courseId = url.searchParams.get("courseId")?.trim();
+      return courseId ? { token: paramToken, courseId } : { token: paramToken };
+    }
   } catch {
     // Not a valid URL, check direct token
   }
   // If it's a JWT-like string with 3 parts
   if (value.split(".").length === 3) {
-    return value;
+    return { token: value };
   }
-  return "";
+  return null;
+}
+
+export function extractTokenFromQrRaw(rawValue: string): string {
+  return extractAttendanceQrFromRaw(rawValue)?.token ?? "";
 }
 
 /**
@@ -69,10 +81,10 @@ export function extractTokenFromQrRaw(rawValue: string): string {
  * Tier 2: ZXing with HybridBinarizer & TRY_HARDER (perspective deskewing for steep angles)
  * Tier 3: jsQR with 1:1 unscaled center crop & attemptBoth inversion
  */
-export async function decodeQrFromVideo(
+export async function decodeAttendanceQrFromVideo(
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement,
-): Promise<string | null> {
+): Promise<AttendanceQrPayload | null> {
   if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
     return null;
   }
@@ -87,8 +99,8 @@ export async function decodeQrFromVideo(
     try {
       const detected = await detector.detect(video);
       if (detected && detected.length > 0 && detected[0].rawValue) {
-        const token = extractTokenFromQrRaw(detected[0].rawValue);
-        if (token) return token;
+        const payload = extractAttendanceQrFromRaw(detected[0].rawValue);
+        if (payload) return payload;
       }
     } catch {
       // Fallback to Tier 2 on detector failure
@@ -110,8 +122,8 @@ export async function decodeQrFromVideo(
     const bitmap = new BinaryBitmap(new HybridBinarizer(source));
     const result = reader.decode(bitmap, hints);
     if (result && result.getText()) {
-      const token = extractTokenFromQrRaw(result.getText());
-      if (token) return token;
+      const payload = extractAttendanceQrFromRaw(result.getText());
+      if (payload) return payload;
     }
   } catch {
     // NotFoundException is expected when no QR is in view
@@ -123,8 +135,8 @@ export async function decodeQrFromVideo(
     inversionAttempts: "attemptBoth",
   });
   if (jsqrFull?.data) {
-    const token = extractTokenFromQrRaw(jsqrFull.data);
-    if (token) return token;
+    const payload = extractAttendanceQrFromRaw(jsqrFull.data);
+    if (payload) return payload;
   }
 
   // ── Tier 3B: jsQR on Center Region of Interest (ROI) at 1:1 native sensor resolution ──
@@ -139,12 +151,19 @@ export async function decodeQrFromVideo(
       inversionAttempts: "attemptBoth",
     });
     if (jsqrRoi?.data) {
-      const token = extractTokenFromQrRaw(jsqrRoi.data);
-      if (token) return token;
+      const payload = extractAttendanceQrFromRaw(jsqrRoi.data);
+      if (payload) return payload;
     }
   }
 
   return null;
+}
+
+export async function decodeQrFromVideo(
+  video: HTMLVideoElement,
+  canvas: HTMLCanvasElement,
+): Promise<string | null> {
+  return (await decodeAttendanceQrFromVideo(video, canvas))?.token ?? null;
 }
 
 export const OPTIMAL_CAMERA_CONSTRAINTS: MediaStreamConstraints = {

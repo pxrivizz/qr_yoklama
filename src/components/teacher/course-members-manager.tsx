@@ -113,7 +113,7 @@ export function CourseMembersManager({
                   value={member.role}
                   disabled={pending}
                   onChange={(event) => void changeRole(member.user.id, event.target.value as Exclude<MemberRole, "OWNER">)}
-                  className="min-h-10 rounded-lg border border-outline-variant bg-white px-3 text-sm"
+                  className="min-h-10 rounded-lg border border-outline bg-white px-3 text-sm"
                 >
                   <option value="INSTRUCTOR">Öğretim elemanı</option>
                   <option value="ASSISTANT">Asistan</option>
@@ -131,11 +131,11 @@ export function CourseMembersManager({
         <form onSubmit={addMember} className="grid gap-3 rounded-lg border border-outline-variant bg-surface-container-low p-4 sm:grid-cols-[1fr_180px_auto] sm:items-end">
           <label className="text-sm font-medium text-on-surface">
             Öğretmen e-postası
-            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-white px-3" />
+            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-white px-3" />
           </label>
           <label className="text-sm font-medium text-on-surface">
             Ders rolü
-            <select value={role} onChange={(event) => setRole(event.target.value as Exclude<MemberRole, "OWNER">)} className="mt-1.5 min-h-11 w-full rounded-lg border border-outline-variant bg-white px-3">
+            <select value={role} onChange={(event) => setRole(event.target.value as Exclude<MemberRole, "OWNER">)} className="mt-1.5 min-h-11 w-full rounded-lg border border-outline bg-white px-3">
               <option value="INSTRUCTOR">Öğretim elemanı</option>
               <option value="ASSISTANT">Asistan</option>
             </select>
